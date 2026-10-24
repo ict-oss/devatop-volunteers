@@ -1,0 +1,8 @@
+node_modules
+.next
+.env.local
+raw-photos
+tsconfig.tsbuildinfo
+*.log
+.vercel
+.claude

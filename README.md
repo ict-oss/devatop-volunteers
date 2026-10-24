@@ -1,0 +1,42 @@
+# Devatop Volunteers Platform
+
+Volunteer platform for Devatop Centre for Africa Development (volunteer.devatop.org): a public site, a volunteer portal and an admin section in one Next.js app. Source of truth for features: the *Devatop Volunteers Platform: Feature Requirements* document.
+
+> **Status: clickable prototype + tested database.** The pages run on sample data saved in the browser (localStorage), so there is no login and nothing is sent anywhere. The real backend (Supabase schema, row-level security, auth helpers) is written and tested but **not yet connected to the pages**. See `docs/developer/database.md`.
+
+## Run it locally (about 5 minutes)
+
+```bash
+npm install
+npm run dev          # http://localhost:3000
+npm test             # 50 database tests (local Postgres, no accounts needed)
+npm run lint         # type-check
+```
+
+Admin area: open `/admin` and use **Viewing as** (bottom of the sidebar) to switch roles. **Reset demo data** clears the browser sample data.
+
+## Put it online (for review)
+
+The prototype needs no database or secrets, so it deploys as it is.
+
+1. Create a GitHub **organisation or account owned by an official Devatop email** (never a staff member's personal account) and push this folder to a new repository.
+2. Create a Vercel account with the same Devatop email, choose **Add New > Project**, import the repository and press **Deploy**. Framework (Next.js) and build settings are detected automatically.
+3. Every push to `main` redeploys. Use the generated `*.vercel.app` address to review; point `volunteer.devatop.org` at it later.
+
+**While it is a prototype, anyone with the link can open `/admin`** (there is no login yet). Share the address only with reviewers, or turn on Vercel's password protection for the project.
+
+## Images
+
+Photos are named slots. Put colour originals in `raw-photos/` named after the slot (see `/image-slots`), run `npm run photos`, and they appear. Adults only, never an identifiable child or survivor; every person photographed needs a consent record.
+
+## Where things are
+
+| Path | What |
+| --- | --- |
+| `src/app/(public)` `(volunteer)` `(admin)/admin` | the three areas |
+| `src/lib/permissions.ts` | the permissions matrix (also seeds the database) |
+| `src/lib/db/schema.ts` | Drizzle schema (about 30 tables) |
+| `src/lib/db/migrations/` | SQL: schema, rules and row-level security, permissions seed |
+| `src/lib/auth/` | Supabase sign-in, two-factor, session guards, session proxy |
+| `tests/db/` | database tests: every rule, run against the real migrations |
+| `tools/` | map and photo scripts, permissions generator |

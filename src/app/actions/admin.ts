@@ -10,6 +10,7 @@ import { adminCaller, asCaller, trusted } from "@/lib/server/caller";
 import { fail, ok, run, type Result } from "@/lib/server/action";
 import { publicEnv } from "@/lib/env";
 import type { Action } from "@/lib/permissions";
+import { logExport, personalExport } from "@/lib/services/reports";
 import { audienceFor, audienceSchema, bulkSchema, deliverBulk, MAX_BULK, recordMessage, resetTemplate, saveMessagingSettings, saveTemplate, settingsSchema, templateSchema } from "@/lib/services/messaging";
 import type { TemplateId } from "@/lib/emails";
 
@@ -116,4 +117,17 @@ export const sendBulkAction = async (raw: unknown) => asAdmin("email.bulk", asyn
   const result = await deliverBulk(trusted(), recipients, p.data.subject, p.data.body);
   await asCaller(me.caller, (tx) => recordMessage(tx, me.caller.sub, p.data, result.sent));
   return ok(result);
+});
+
+/* ---------------------------------------------------------------- reports and exports */
+
+/** Contact-detail export: Super Admin only, and always written to the audit log (counts only). */
+export const exportPersonalAction = async (format: "csv" | "xlsx") => asAdmin("export.personal", async (me) => {
+  const rows = await asCaller(me.caller, (tx) => personalExport(tx));
+  await logExport(trusted(), me.caller.sub, "export.personal", { volunteers: rows.length, format: format === "xlsx" ? "xlsx" : "csv" });
+  return ok({ rows });
+});
+export const logReportExportAction = async (format: "csv" | "xlsx" | "pdf", groupBy: string) => asAdmin("reports.export", async (me) => {
+  await logExport(trusted(), me.caller.sub, "export.report", { format, groupBy: String(groupBy).slice(0, 20) });
+  return ok();
 });

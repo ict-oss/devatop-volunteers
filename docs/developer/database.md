@@ -42,8 +42,12 @@ select id, 'super_admin' from auth.users where email in ('first@devatop.org', 's
 
 ## Supabase settings that must be switched on
 
-Authentication: email one-time code (set the email template to show the code), TOTP multi-factor, Site URL and redirect URLs set to the live address, a custom SMTP sender (Brevo or Resend). SMS needs a phone provider.
+Authentication: email one-time code (set the email template to show the code), TOTP multi-factor, Site URL and redirect URLs set to the live address, a custom SMTP sender (Brevo or Resend). There is no SMS sign-in (Devatop has no phone provider).
 Backups: daily backups on a paid plan, plus a copy stored away from the main server, and a restore tested once before launch.
+
+## Turning sign-in on
+
+Sign-in protection is off until `AUTH_ENABLED=true`. Until then `/admin` and the volunteer pages are open (sample data only). To turn it on: finish the Supabase settings above, make the first two Super Admins, sign in once by hand (email code, then scan the two-factor QR code), then set `AUTH_ENABLED=true` in Vercel and redeploy. Rules live in `src/lib/auth/routing.ts`; tests in `tests/auth/` and `tests/db/auth.test.ts`.
 
 ## Known limits
 

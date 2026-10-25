@@ -11,13 +11,18 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - The real backend, written and tested but **NOT yet wired into the pages**:
   - `src/lib/db/schema.ts`: Drizzle schema, about 30 tables.
   - `src/lib/db/migrations/`: `0000` schema, `0001` rules and row-level security, `0002` permissions seed (generated from `src/lib/permissions.ts`).
-  - `src/lib/auth/`: Supabase clients, email-code sign-in, two-factor (TOTP), server guards (`requireAdmin`), session proxy (`proxy.ts`, to be activated as `src/proxy.ts` at cutover).
+  - `src/lib/auth/`: Supabase clients, email-code sign-in, two-factor (TOTP), server guards (`requireAdmin`), session proxy (`proxy.ts`, switched on by `src/proxy.ts` when `AUTH_ENABLED=true`).
   - `src/lib/db/rls.ts`: `asUser()` runs Drizzle queries under row-level security.
   - `tests/db/`: 50 tests against the real migrations in a local Postgres (PGlite). Run `npm test`.
 - A Supabase project exists (owner: Devatop). Migrations run with `npm run db:migrate`; `npm run db:check` verifies. Secrets live in `.env.local` (never committed) and in Vercel environment variables.
 
+- **Auth and roles (step 1) is built and tested, but switched OFF.** `/login` (email code), `/auth/continue`, `/admin/two-factor`, `/admin/not-allowed`, `src/proxy.ts`, a server guard in the admin layout. All routing rules are plain functions in `src/lib/auth/routing.ts` (tested in `tests/auth/`). While `AUTH_ENABLED` is unset the prototype stays open to reviewers. **To go live:** set `AUTH_ENABLED=true` (Vercel + `.env.local`), after the Supabase settings in `docs/developer/database.md` are on and the first two Super Admins exist. Sign-in is email-code only (no SMS provider, by decision). Not done yet: each admin page calling `requireAdmin(its action)` (done as each page moves onto the database, step 5). The admin layout still shows the prototype role switcher.
+
+- **Images and clips:** every image slot (`src/lib/images.ts`) now has stand-in artwork in `public/photos/` (abstract, no people; regenerate with `node tools/standins/make.mjs`, needs Playwright + ffmpeg). Two silent looping clips in `public/video/` (`LoopVideo`: plays only on fast connections, never with reduced motion). Admin > Site images (`/admin/images`, Super Admin) replaces any slot; in the prototype a replacement lives in that browser only (localStorage). **To do at cutover:** save replacements to Supabase Storage (needs a small `site_images` table: show the schema for review first) so every visitor sees them; replace the stand-ins with real, consented photos (log consent in `docs/photo-consent.csv`).
+- The home hero word ACTION is now fitted so the whole word (including the final N) always shows, and is capped at half the screen height.
+
 **Next, in this order (requirements section 15)**
-1. Auth and roles: login page (email code), `/admin/two-factor` page, activate `src/proxy.ts`, first two Super Admins.
+1. (done, see above) Auth and roles. Remaining for go-live: Supabase auth settings, first two Super Admins, test the real login by hand, then set `AUTH_ENABLED=true`.
 2. Seed file: programmes, departments, settings (`min_age`, `review_days`, `whatsapp_group`), guides.
 3. Application flow on the database (consents, guardian link, OTP).
 4. Admin review, volunteer dashboard, opportunities and sign-ups, QR check-in, hours, certificates (PDF with QR), real emails (Brevo/Resend), reminder cron.
@@ -28,7 +33,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - Next.js 16 (App Router), TypeScript strict. Note: Next 16 calls middleware "proxy" (`src/proxy.ts`, exported `proxy`).
 - Tailwind CSS v4 (tokens in `src/app/globals.css`), custom components (no shadcn yet).
 - PostgreSQL on Supabase, Drizzle ORM, migrations in `src/lib/db/migrations`.
-- Supabase Auth (email or phone one-time code) + TOTP two-factor for admins.
+- Supabase Auth (email one-time code; no SMS) + TOTP two-factor for admins.
 - Zod for validation (to be shared by forms and server), Brevo or Resend for email, `qrcode` for QR, `fflate` for `.xlsx` export.
 - GSAP (ScrollTrigger, DrawSVG) + Lenis: public site only. Vitest for tests.
 

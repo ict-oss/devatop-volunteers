@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Photo } from "@/components/Photo";
+import { LoopVideo } from "@/components/LoopVideo";
 import { DEPARTMENTS } from "@/lib/data";
 
 export const metadata = { title: "About" };
@@ -10,6 +11,7 @@ export default function About() {
       <section className="mx-auto max-w-[1500px] px-4 md:px-8 pt-12 md:pt-20">
         <h1 className="text-[length:var(--text-display)] max-w-5xl" data-mask>Youth-led. <em className="accent">Action-first.</em></h1>
         <div className="mt-10"><Photo slot="about-1" className="w-full" alt="Devatop team and volunteers together" /></div>
+        <div className="mt-6"><LoopVideo slot="loop-ticker" label="Words that sum up Devatop scrolling past: show up, speak up, step up" className="w-full" /></div>
       </section>
 
       <section className="mx-auto max-w-[1500px] px-4 md:px-8 py-16 grid md:grid-cols-12 gap-10">

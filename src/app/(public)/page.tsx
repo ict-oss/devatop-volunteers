@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ActionHero } from "@/components/ActionHero";
 import { NigeriaMap } from "@/components/NigeriaMap";
 import { Photo } from "@/components/Photo";
+import { LoopVideo } from "@/components/LoopVideo";
 import { InkArrow, ArrowRight } from "@/components/Marks";
 import { CallsBoard } from "@/components/CallsBoard";
 import { DEPARTMENTS, ROLL, STATE_HOURS, TOTALS, money } from "@/lib/data";
@@ -42,6 +43,11 @@ export default function Home() {
             <InkArrow className="hidden md:block absolute -left-44 -bottom-24 w-40 text-ink rotate-[8deg]" />
           </div>
         </div>
+      </section>
+
+      {/* IN MOTION: short silent loop (admins can change it later) */}
+      <section className="mt-16 md:mt-24 px-4 md:px-8 mx-auto max-w-[1500px]" aria-label="Counting action">
+        <LoopVideo slot="loop-tally" label="Tally marks being counted, one after another" className="w-full" />
       </section>
 
       {/* NUMBERS AS ARCHITECTURE — orange field */}

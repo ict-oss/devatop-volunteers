@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { SLOTS, photoSrc } from "@/lib/images";
+import { PHOTOS_CHANGED, SLOTS, photoOverride, photoSrc } from "@/lib/images";
 
 const cache = new Map<string, boolean>();
 let manifest: Promise<Set<string>> | null = null;
@@ -11,6 +11,7 @@ const loadManifest = () =>
   (manifest ??= fetch("/photos/manifest.json").then((r) => (r.ok ? r.json() : [])).then((a: string[]) => new Set(a)).catch(() => new Set<string>()));
 
 export async function probePhoto(id: string): Promise<boolean> {
+  if (photoOverride(id)) return true; // an admin's replacement always counts
   if (cache.has(id)) return cache.get(id)!;
   const ok = (await loadManifest()).has(id);
   cache.set(id, ok);
@@ -19,7 +20,14 @@ export async function probePhoto(id: string): Promise<boolean> {
 
 export function usePhoto(id: string) {
   const [ok, setOk] = useState<boolean | null>(cache.has(id) ? cache.get(id)! : null);
-  useEffect(() => { let live = true; probePhoto(id).then((v) => live && setOk(v)); return () => { live = false; }; }, [id]);
+  const [, bump] = useState(0);
+  useEffect(() => {
+    let live = true;
+    const check = () => probePhoto(id).then((v) => { if (live) { setOk(v); bump((n) => n + 1); } });
+    check();
+    window.addEventListener(PHOTOS_CHANGED, check); // an admin replaced an image in this browser
+    return () => { live = false; window.removeEventListener(PHOTOS_CHANGED, check); };
+  }, [id]);
   return ok;
 }
 

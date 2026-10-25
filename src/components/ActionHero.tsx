@@ -10,7 +10,7 @@ const HATCH = ["hatch-a", "hatch-b", "hatch-c"];
 const SLOT_IDS = ["hero-1", "hero-2", "hero-3"];
 
 /**
- * ACTION set huge, hard left, cropped by the right edge. Three photo layers show through the letters
+ * ACTION set big, hard left, always fully visible (never cropped). Three photo layers show through the letters
  * and cross-fade slowly. Until real photos exist, each layer shows a hatched placeholder.
  * Each letter carries the same word-sized background so the photo reads as one image across the word.
  */
@@ -23,7 +23,7 @@ export function ActionHero() {
 
   useEffect(() => { SLOT_IDS.forEach((id, i) => probePhoto(id).then((ok) => ok && setHave((h) => h.map((v, j) => (j === i ? true : v))))); }, []);
 
-  // size the word so ACTION runs a little past the right edge; then measure each letter's offset
+  // size the word so all of ACTION fits; then measure each letter's offset
   useLayoutEffect(() => {
     const fit = async () => {
       if (!wrap.current || !word.current) return;
@@ -34,8 +34,10 @@ export function ActionHero() {
       probe.textContent = "ACTION";
       document.body.appendChild(probe);
       const natural = probe.getBoundingClientRect().width; probe.remove();
-      const target = wrap.current.clientWidth * (window.innerWidth < 768 ? 1.0 : 1.06);
-      const fs = (target / natural) * 100;
+      // the whole word must show (including the final N): fit it inside the width with a small margin,
+      // and never taller than about half the screen, so the headline and the call to action stay in view
+      const fitWidth = (wrap.current.clientWidth * 0.96 / natural) * 100;
+      const fs = Math.min(fitWidth, window.innerHeight * 0.5);
       setSize(fs);
     };
     fit();

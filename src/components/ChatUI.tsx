@@ -4,6 +4,13 @@ import { SEED_CHAT, hasContactInfo, type Msg, type Room } from "@/lib/chat";
 import { KEYS, newId, nowIso, useLocal } from "@/lib/store";
 
 type Self = { name: string; label: string; staff: boolean };
+/** Real mode: the database-backed rooms. The UI is the same; only where messages come from and go to changes. */
+export type ChatAdapter = {
+  load: (room: string) => Promise<Msg[] | null>;
+  reported: () => Promise<Msg[] | null>;
+  send: (room: string, text: string) => Promise<string | null>;       // returns an error message, or null
+  moderate: (kind: "report" | "dismiss" | "remove", id: string) => Promise<string | null>;
+};
 const time = (iso: string) => {
   const d = new Date(iso), today = new Date();
   const t = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -11,8 +18,11 @@ const time = (iso: string) => {
 };
 
 /** One chat UI for volunteers and admins. Access (which rooms, who can post or moderate) comes in through `rooms`. */
-export function ChatUI({ rooms, self, showReports = false, onModerate }: { rooms: Room[]; self: Self; showReports?: boolean; onModerate?: (action: string, m: Msg) => void }) {
-  const [all, setAll] = useLocal<Msg[]>(KEYS.chat, SEED_CHAT);
+export function ChatUI({ rooms, self, showReports = false, onModerate, adapter }: { rooms: Room[]; self: Self; showReports?: boolean; onModerate?: (action: string, m: Msg) => void; adapter?: ChatAdapter }) {
+  const [localAll, setAll] = useLocal<Msg[]>(KEYS.chat, SEED_CHAT);
+  const [remote, setRemote] = useState<Msg[]>([]);
+  const [remoteReports, setRemoteReports] = useState<Msg[]>([]);
+  const all = adapter ? remote : localAll;
   const [sel, setSel] = useState(rooms[0]?.id ?? "");
   const [text, setText] = useState("");
   const [err, setErr] = useState("");
@@ -20,22 +30,32 @@ export function ChatUI({ rooms, self, showReports = false, onModerate }: { rooms
   const room = rooms.find((r) => r.id === sel) ?? rooms[0];
   const isReports = showReports && sel === "__reports";
   const msgs = useMemo(() => all.filter((m) => m.room === room?.id).sort((a, b) => +new Date(a.at) - +new Date(b.at)), [all, room?.id]);
-  const reported = all.filter((m) => m.reported && !m.deleted);
+  const reported = adapter ? remoteReports : all.filter((m) => m.reported && !m.deleted);
 
   useEffect(() => { if (!rooms.find((r) => r.id === sel) && sel !== "__reports") setSel(rooms[0]?.id ?? ""); }, [rooms, sel]);
+  // real mode: fetch the open room now and every 5 seconds (no websockets needed)
+  const refresh = async () => {
+    if (!adapter) return;
+    if (sel === "__reports") { const r = await adapter.reported(); if (r) setRemoteReports(r); return; }
+    if (!sel) return;
+    const r = await adapter.load(sel); if (r) setRemote((p) => [...p.filter((m) => m.room !== sel), ...r]);
+  };
+  useEffect(() => { if (!adapter) return; refresh(); const t = setInterval(refresh, 5000); return () => clearInterval(t); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adapter, sel]);
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs.length, sel]);
 
-  const send = () => {
+  const send = async () => {
     const t = text.trim();
     if (!t || !room?.canPost) return;
     if (t.length > 1000) { setErr("Keep it under 1000 characters."); return; }
     if (!self.staff && room.group !== "Help" && hasContactInfo(t)) { setErr("Please don't share phone numbers or emails in group rooms. Use Support for anything private."); return; }
+    if (adapter) { const e = await adapter.send(room.id, t); if (e) { setErr(e); return; } setText(""); setErr(""); await refresh(); return; }
     setAll((p) => [...p, { id: newId(), room: room.id, who: self.name, label: self.label, staff: self.staff, at: nowIso(), text: t }]);
     setText(""); setErr("");
   };
-  const report = (m: Msg) => { if (confirm("Report this message to the Devatop team?")) setAll((p) => p.map((x) => (x.id === m.id ? { ...x, reported: true } : x))); };
-  const remove = (m: Msg) => { if (!confirm(`Remove this message from ${m.who}? This is logged.`)) return; setAll((p) => p.map((x) => (x.id === m.id ? { ...x, deleted: true } : x))); onModerate?.("Chat message removed", m); };
-  const dismiss = (m: Msg) => { setAll((p) => p.map((x) => (x.id === m.id ? { ...x, reported: false } : x))); onModerate?.("Chat report dismissed", m); };
+  const report = async (m: Msg) => { if (!confirm("Report this message to the Devatop team?")) return; if (adapter) { setErr((await adapter.moderate("report", m.id)) ?? ""); await refresh(); return; } setAll((p) => p.map((x) => (x.id === m.id ? { ...x, reported: true } : x))); };
+  const remove = async (m: Msg) => { if (!confirm(`Remove this message from ${m.who}? This is logged.`)) return; if (adapter) { setErr((await adapter.moderate("remove", m.id)) ?? ""); await refresh(); return; } setAll((p) => p.map((x) => (x.id === m.id ? { ...x, deleted: true } : x))); onModerate?.("Chat message removed", m); };
+  const dismiss = async (m: Msg) => { if (adapter) { setErr((await adapter.moderate("dismiss", m.id)) ?? ""); await refresh(); return; } setAll((p) => p.map((x) => (x.id === m.id ? { ...x, reported: false } : x))); onModerate?.("Chat report dismissed", m); };
 
   const groups = (["Everyone", "Departments", "Staff", "Help"] as const).map((g) => [g, rooms.filter((r) => r.group === g)] as const).filter(([, r]) => r.length);
 
@@ -73,7 +93,7 @@ export function ChatUI({ rooms, self, showReports = false, onModerate }: { rooms
           <>
             <div className="flex-1 overflow-y-auto p-4 grid gap-3 content-start" role="log" aria-live="polite">
               {msgs.map((m) => {
-                const mine = m.who === self.name && m.staff === self.staff;
+                const mine = m.mine ?? (m.who === self.name && m.staff === self.staff);
                 return (
                   <article key={m.id} className={`max-w-[85%] ${mine ? "justify-self-end" : ""}`}>
                     <div className={`text-xs font-bold ${mine ? "text-right" : ""}`}>{m.who} {m.staff && <span className="stamp stamp-info ml-1">{m.label}</span>} <span className="font-normal opacity-60 ml-1">{time(m.at)}</span></div>

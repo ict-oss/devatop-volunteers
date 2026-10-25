@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { applicantEmailTarget, applicationQueue, decideApplication } from "../../src/lib/services/review";
+import { applicantEmailTarget, applicationQueue, decideApplication, joinDepartmentsOnApproval } from "../../src/lib/services/review";
 import { freshServices } from "./setup";
 
 let t: Awaited<ReturnType<typeof freshServices>>;
@@ -106,5 +106,26 @@ describe("deciding", () => {
   it("the email target is found even for an admin who may not see contact details", async () => {
     const target = await applicantEmailTarget(t.owner, apps.lagosAdult);
     expect(target).toMatchObject({ email: "lagos-adult@example.com", first: "lagos-adult" });
+  });
+});
+
+describe("approval puts the volunteer in the departments they chose", () => {
+  it("creates active memberships and confirms the choices; running it twice is harmless; archived departments are skipped", async () => {
+    const archived = await t.h.department("Old team");
+    const x = await applicant("joiner", { state: "Lagos", dob: "1996-05-05" });
+    await t.h.svc("insert into application_departments (application_id, department_id) values ($1,$2)", [x.app, archived]);
+    await t.h.svc("update departments set status='archived' where id=$1", [archived]);
+    await t.as(a2(coord), (tx) => decideApplication(tx, x.app, "approved"));
+    expect(await joinDepartmentsOnApproval(t.owner, x.app)).toBe(1);
+    expect(await joinDepartmentsOnApproval(t.owner, x.app)).toBe(1);
+    const m = await t.h.svc<{ department_id: string; status: string }>("select department_id, status from department_memberships where user_id=$1", [x.id]);
+    expect(m).toEqual([{ department_id: dept, status: "active" }]);
+    expect((await t.h.svc<{ n: number }>("select count(*)::int n from application_departments where application_id=$1 and confirmed", [x.app]))[0].n).toBe(2);
+    // the department room now opens for them
+    expect((await t.h.q<{ ok: boolean }>({ sub: x.id }, "select public.chat_can_read('dept:' || $1) as ok", [dept]))[0].ok).toBe(true);
+  });
+  it("does nothing for an application that is not approved", async () => {
+    const y = await applicant("not-yet", { state: "Lagos", dob: "1995-05-05" });
+    expect(await joinDepartmentsOnApproval(t.owner, y.app)).toBe(0);
   });
 });

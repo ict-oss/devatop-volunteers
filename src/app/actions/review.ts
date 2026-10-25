@@ -1,6 +1,6 @@
 "use server";
 import { z } from "zod";
-import { applicantEmailTarget, decideApplication } from "@/lib/services/review";
+import { applicantEmailTarget, decideApplication, joinDepartmentsOnApproval } from "@/lib/services/review";
 import { sendTemplateEmail } from "@/lib/email/notify";
 import { adminCaller, asCaller, trusted } from "@/lib/server/caller";
 import { fail, ok, run, type Result } from "@/lib/server/action";
@@ -22,6 +22,7 @@ export async function decideApplicationsAction(raw: unknown): Promise<Result<{ d
       const r = await asCaller(me.caller, (tx) => decideApplication(tx, id, input.decision, input.note));
       if (!r.ok) { refused.push({ id, message: r.message }); continue; }
       done++;
+      if (input.decision === "approved") await joinDepartmentsOnApproval(trusted(), id);
       const who = await applicantEmailTarget(trusted(), id);
       if (!who) continue;
       const reapply = new Date(Date.now() + REAPPLY_DAYS * 864e5).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });

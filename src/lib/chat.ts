@@ -4,7 +4,7 @@ import type { Department } from "./data";
 import type { Admin } from "./permissions";
 import type { Application } from "./store";
 
-export type Msg = { id: string; room: string; who: string; label: string; staff: boolean; at: string; text: string; reported?: boolean; deleted?: boolean };
+export type Msg = { id: string; room: string; who: string; label: string; staff: boolean; at: string; text: string; reported?: boolean; deleted?: boolean; mine?: boolean };
 export type Room = { id: string; name: string; blurb: string; group: "Everyone" | "Departments" | "Staff" | "Help"; canPost: boolean; canModerate: boolean };
 
 export const ROOM_GENERAL = "general";

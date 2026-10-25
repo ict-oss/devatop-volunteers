@@ -5,6 +5,7 @@ import type { Announcement } from "./useComms";
 import type { Application, HourLog } from "./store";
 import type { CertificateView } from "./services/certificates";
 import type { StartItem } from "./services/portal";
+import type { GuideView } from "./services/profile";
 
 /**
  * Real data for the public and volunteer screens, read on the server and handed down once AUTH_ENABLED=true.
@@ -21,6 +22,7 @@ export type LiveData = {
   hours: HourLog[];
   certs: CertificateView[];
   startHere: StartItem[];
+  guides: GuideView[];
   announcements: Announcement[];
   whatsappGroup: string;
   reviewDays: number;

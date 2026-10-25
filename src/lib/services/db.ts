@@ -57,7 +57,7 @@ const RULES: [RegExp, string][] = [
   [/department_has_active_members/, "department_has_active_members"], [/department_has_history/, "department_has_history"],
   [/departments_name_key|duplicate key value violates unique constraint "departments/, "duplicate_name"],
   [/only_active_volunteers/, "only_active_volunteers"],
-  [/permission denied|not allowed|42501|only a reviewer|only an admin|row-level security/i, "forbidden"],
+  [/permission denied|not allowed|42501|only a reviewer|only an admin|only a moderator|row-level security/i, "forbidden"],
 ];
 /** Turn a database rule violation into an AppError; anything unexpected is re-thrown untouched (and never shown to the person). */
 export function asAppError(e: unknown): unknown {

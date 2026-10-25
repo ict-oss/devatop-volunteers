@@ -76,3 +76,19 @@ export async function applicantEmailTarget(owner: Db, applicationId: string) {
     left join volunteer_contacts vc on vc.user_id = a.user_id where a.id = ${applicationId}::uuid`))[0];
   return r?.email ? { userId: r.user_id, email: r.email, first: r.first_name } : null;
 }
+
+/**
+ * Approval puts the new volunteer into the departments they chose, so their department room and calls work straight away.
+ * Runs with the trusted connection AFTER the decision was accepted (an admin who may approve may not be allowed to assign departments).
+ */
+export async function joinDepartmentsOnApproval(owner: Db, applicationId: string): Promise<number> {
+  const r = rowsOf(await owner.execute(sql`
+    insert into department_memberships (user_id, department_id, role, status, joined_at)
+    select a.user_id, ad.department_id, 'member', 'active', now()
+    from applications a join application_departments ad on ad.application_id = a.id join departments d on d.id = ad.department_id and d.status = 'active'
+    where a.id = ${applicationId}::uuid and a.stage = 'approved'
+    on conflict (user_id, department_id) do update set status = 'active', left_at = null
+    returning id`));
+  await owner.execute(sql`update application_departments set confirmed = true where application_id = ${applicationId}::uuid`);
+  return r.length;
+}

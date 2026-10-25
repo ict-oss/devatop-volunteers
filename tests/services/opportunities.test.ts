@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { adminOpportunities, cancelSignup, createOpportunity, mySignups, opportunitySchema, setOpportunityPublished, signUp, upcomingOpportunities } from "../../src/lib/services/opportunities";
+import { adminOpportunities, cancelSignup, createOpportunity, mySignups, opportunitySchema, setOpportunityPublished, signUp, updateOpportunity, upcomingOpportunities } from "../../src/lib/services/opportunities";
 import { freshServices, rejects } from "./setup";
 
 let t: Awaited<ReturnType<typeof freshServices>>;
@@ -95,5 +95,16 @@ describe("volunteer sign-ups", () => {
     await rejects(t.as(me(v2), (tx) => signUp(tx, v3, opp)));
     expect((await t.as(me(v2), (tx) => mySignups(tx, v2))).every((s) => s.opportunityId === opp)).toBe(true);
     expect(await t.as(me(v2), (tx) => mySignups(tx, v3))).toEqual([]);
+  });
+});
+
+describe("editing a call", () => {
+  it("an admin changes the details; a State Lead cannot edit another state's call", async () => {
+    const { id } = await t.as(a2(coord), (tx) => createOpportunity(tx, input({ title: "Edit me" })));
+    await t.as(a2(coord), (tx) => updateOpportunity(tx, id, input({ title: "Edited title", slots: 7, skills: ["Writing"] })));
+    const o = (await t.as(a2(coord), (tx) => adminOpportunities(tx))).find((x) => x.id === id)!;
+    expect(o).toMatchObject({ title: "Edited title", slots: 7, skills: ["Writing"] });
+    expect((await rejects(t.as(a2(kanoLead), (tx) => updateOpportunity(tx, id, input({ title: "Hijacked", state: "Kano" }))))).code).toBe("not_found");
+    expect((await t.as(a2(coord), (tx) => adminOpportunities(tx))).find((x) => x.id === id)!.title).toBe("Edited title");
   });
 });

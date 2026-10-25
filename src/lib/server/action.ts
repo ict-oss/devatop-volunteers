@@ -2,7 +2,8 @@ import "server-only";
 import { z } from "zod";
 import { AppError } from "../services/db";
 
-export type Result<T = undefined> = { ok: true; data: T } | { ok: false; code: string; message: string; fields?: Record<string, string> };
+import type { Result } from "../result";
+export type { Result };
 export const ok = <T = undefined>(data?: T): Result<T> => ({ ok: true, data: data as T });
 export const fail = (code: string, message: string, fields?: Record<string, string>): Result<never> => ({ ok: false, code, message, fields });
 

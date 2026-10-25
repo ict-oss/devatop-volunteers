@@ -1,6 +1,4 @@
 import { sql } from "drizzle-orm";
-import { z } from "zod";
-import { STATE_NAMES } from "../data";
 import { AppError, guard, rowsOf, type Db } from "./db";
 
 /** The same shape the prototype screens already use, so the public board and dashboard need no redesign. */
@@ -47,20 +45,8 @@ export async function adminOpportunities(db: Db): Promise<OpportunityView[]> {
 }
 
 /* ---------------------------------------------------------------- admin: create and edit */
-const dt = z.string().refine((s) => !isNaN(Date.parse(s)), "Pick a valid date and time.");
-export const opportunitySchema = z.object({
-  title: z.string().trim().min(3).max(120), description: z.string().trim().max(1200).default(""),
-  programmeId: z.uuid(), departmentId: z.uuid().nullable().default(null),
-  mode: z.enum(["physical", "remote"]), state: z.enum(STATE_NAMES as [string, ...string[]]).nullable().default(null), place: z.string().trim().max(120).default(""),
-  startsAt: dt, endsAt: dt.nullable().default(null), signupDeadline: dt,
-  slots: z.number().int().min(1).max(5000), skills: z.array(z.string().trim().min(1).max(40)).max(12).default([]),
-  commitment: z.string().trim().max(80).default(""), published: z.boolean().default(true),
-}).superRefine((o, ctx) => {
-  if (o.mode === "physical" && !o.state) ctx.addIssue({ code: "custom", path: ["state"], message: "Pick the state for a physical call." });
-  if (Date.parse(o.signupDeadline) > Date.parse(o.startsAt)) ctx.addIssue({ code: "custom", path: ["signupDeadline"], message: "Sign-ups must close before the call starts." });
-  if (o.endsAt && Date.parse(o.endsAt) < Date.parse(o.startsAt)) ctx.addIssue({ code: "custom", path: ["endsAt"], message: "The end must be after the start." });
-});
-export type OpportunityInput = z.infer<typeof opportunitySchema>;
+export { opportunitySchema, type OpportunityInput } from "../validation/opportunity";
+import type { OpportunityInput } from "../validation/opportunity";
 
 export async function createOpportunity(db: Db, input: OpportunityInput): Promise<{ id: string }> {
   return guard(async () => {
@@ -72,6 +58,16 @@ export async function createOpportunity(db: Db, input: OpportunityInput): Promis
       returning id`));
     return { id: r[0].id };
   });
+}
+
+export async function updateOpportunity(db: Db, id: string, input: OpportunityInput): Promise<void> {
+  const r = await guard(async () => rowsOf(await db.execute(sql`
+    update opportunities set title = ${input.title}, description = ${input.description || null}, programme_id = ${input.programmeId}::uuid, department_id = ${input.departmentId}::uuid,
+      mode = ${input.mode}::opportunity_mode, state = ${input.mode === "remote" ? null : input.state}, place = ${input.place || null}, starts_at = ${input.startsAt}::timestamptz,
+      ends_at = ${input.endsAt}::timestamptz, signup_deadline = ${input.signupDeadline}::timestamptz, slots = ${input.slots},
+      skills = array(select jsonb_array_elements_text(${JSON.stringify(input.skills)}::jsonb)), commitment = ${input.commitment || null}, published = ${input.published}
+    where id = ${id}::uuid returning id`)));
+  if (r.length === 0) throw new AppError("not_found", "We could not find that call, or it is outside your area.");
 }
 
 export async function setOpportunityPublished(db: Db, id: string, published: boolean) {

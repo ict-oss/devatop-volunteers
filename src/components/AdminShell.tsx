@@ -16,6 +16,7 @@ const NAV: { label: string; href: string; need: Action }[] = [
   { label: "Attendance", href: "/admin/attendance", need: "attendance.take" },
   { label: "Hours", href: "/admin/hours", need: "hours.approve" },
   { label: "Volunteers", href: "/admin/volunteers", need: "volunteers.list" },
+  { label: "Certificates", href: "/admin/certificates", need: "certificates.issue" },
   { label: "Reports", href: "/admin/reports", need: "reports.see" },
   { label: "Messages", href: "/admin/messages", need: "email.bulk" },
   { label: "Chat", href: "/admin/chat", need: "overview" },

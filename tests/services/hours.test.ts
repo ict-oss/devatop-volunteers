@@ -64,13 +64,22 @@ describe("approving hours", () => {
     expect((await t.as(me(vol2), (tx) => decideHours(tx, [id], "approved"))).refused).toHaveLength(1);
     expect((await t.h.svc<{ status: string }>("select status from hour_logs where id=$1", [id]))[0].status).toBe("pending");
   });
+  it("one refusal in the middle of a batch does not spoil the rest (an admin's own hours are refused, the others go through)", async () => {
+    const mk = async (u: string, a: string) => (await t.h.svc<{ id: string }>("insert into hour_logs (user_id, activity, worked_on, hours, method) values ($1,$2,'2026-10-02',1,'remote_log') returning id", [u, a]))[0].id;
+    const first = await mk(vol2, "Batch one"), own = await mk(coord, "Coordinator's own hours"), last = await mk(vol2, "Batch two");
+    const r = await t.as(a2(coord), (tx) => decideHours(tx, [first, own, last], "approved"));
+    expect(r.done).toEqual([first, last]);
+    expect(r.refused).toHaveLength(1); expect(r.refused[0]).toMatchObject({ id: own, message: "You cannot decide your own hours." });
+    expect((await t.h.svc<{ status: string }>("select status from hour_logs where id=$1", [own]))[0].status).toBe("pending");
+  });
   it("edit corrects pending hours; reject keeps them out of the total", async () => {
+    const before = await approvedTotal(t.owner, vol2);
     const { id } = await t.as(me(vol2), (tx) => logRemoteHours(tx, vol2, { activity: "Mis-typed hours", workedOn: day(1), hours: 8 }));
     await t.as(a2(coord), (tx) => editPendingHours(tx, id, 4));
     expect((await t.as(me(vol2), (tx) => myHours(tx, vol2))).find((h) => h.id === id)!.hours).toBe(4);
     expect((await rejects(t.as(a2(coord), (tx) => editPendingHours(tx, id, 99)))).code).toBe("invalid");
     await t.as(a2(coord), (tx) => decideHours(tx, [id], "rejected", "Not enough detail"));
-    expect(await approvedTotal(t.owner, vol2)).toBe(0);
+    expect(await approvedTotal(t.owner, vol2)).toBe(before); // rejected hours never count
   });
 });
 

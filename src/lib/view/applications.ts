@@ -11,6 +11,7 @@ export function toApplication(q: QueueRow): Application {
     dob: q.dob ?? "", ageYears: q.ageYears, occupation: "", skills: q.skills, departments: q.departmentIds,
     availability: q.availability ?? "", languages: q.languages, heard: "", stage: STAGE[q.stage], submittedAt: q.submittedAt,
     consents: q.consents.map((c) => ({ key: KEY[c.kind] ?? c.kind, text: "", version: c.version, at: q.submittedAt })),
+    reply: q.reply ?? undefined,
     guardian: q.ageYears !== null && q.ageYears < 18 ? { name: q.guardianName ?? "", contact: "", verified: q.guardianVerified } : undefined,
   };
 }

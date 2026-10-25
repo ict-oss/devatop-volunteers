@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { DEPARTMENTS, STATE_NAMES, fmtDate } from "@/lib/data";
 import { KEYS, SEED_APPS, ageFor, useLocal, type Application, type Stage } from "@/lib/store";
 import { STAGE_TO_DB } from "@/lib/view/applications";
@@ -107,8 +107,8 @@ export function ApplicationsView({ real, initial, departments }: ApplicationsPro
               const age = ageFor(a); const block = approvalBlocker(a);
               const days = Math.max(0, Math.round((Date.now() - +new Date(a.submittedAt)) / 864e5));
               return (
-                <>
-                  <tr key={a.id} className="border-t border-rule align-top">
+                <Fragment key={a.id}>
+                  <tr className="border-t border-rule align-top">
                     <td className="py-3"><input type="checkbox" className="size-5" aria-label={`Select ${a.first} ${a.last}`} checked={sel.includes(a.id)} onChange={(e) => setSel((p) => e.target.checked ? [...p, a.id] : p.filter((x) => x !== a.id))} /></td>
                     <td className="py-3 pr-3"><button className="font-bold underline text-left" onClick={() => setOpen(open === a.id ? null : a.id)} aria-expanded={open === a.id}>{a.first} {a.last}{a.mine && " (you)"}</button>
                       {age !== null && age < 18 && <span className="stamp stamp-info ml-2">Under 18</span>}</td>
@@ -128,13 +128,14 @@ export function ApplicationsView({ real, initial, departments }: ApplicationsPro
                         <div><b>Skills</b><br />{a.skills.join(", ")}<br /><b className="block mt-2">Availability</b>{a.availability}<br /><b className="block mt-2">Languages</b>{a.languages.join(", ")}</div>
                         <div><b>Contact</b><br />{showContact ? <>{a.email}<br />{a.phone}</> : <span className="opacity-60">Hidden for your role</span>}<br /><b className="block mt-2">Date of birth</b>{showDob && a.dob ? `${fmtDate(a.dob)} (${age})` : <span className="opacity-60">Hidden for your role</span>}
                           <br /><b className="block mt-2">Applied</b>{fmtDate(a.submittedAt.slice(0, 10))}</div>
+                        {a.reply && <div className="md:col-span-3 border-l-4 border-orange pl-3"><b>Applicant's reply to your question</b><p className="mt-1 whitespace-pre-line">{a.reply}</p></div>}
                         <div><b>Consents on record</b>{a.consents.length ? <ul className="list-disc pl-4">{a.consents.map((c) => <li key={c.key}>{c.key} · {c.version}</li>)}</ul> : <p className="opacity-60">None recorded (seed data)</p>}
                           {age !== null && age < 18 && <p className={`mt-2 font-bold ${a.guardian?.verified ? "text-stamp" : "text-alert"}`}>Guardian: {a.guardian ? `${a.guardian.name} — ${a.guardian.verified ? "verified" : "not verified"}` : "none"}</p>}
                           {block && <p className="text-alert font-bold mt-1">{block} The database refuses this approval.</p>}</div>
                       </div>
                     </td></tr>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </tbody>

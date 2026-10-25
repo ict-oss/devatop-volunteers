@@ -1,6 +1,6 @@
 "use server";
 import { applicationSchema, guardianSchema } from "@/lib/validation/application";
-import { createGuardianRequest, guardianDecide, guardianState, saveApplicantDetails, submitApplication, type GuardianState } from "@/lib/services/applications";
+import { createGuardianRequest, guardianDecide, guardianState, replyToMoreInfo, saveApplicantDetails, submitApplication, type GuardianState } from "@/lib/services/applications";
 import { sendTemplateEmail } from "@/lib/email/notify";
 import { asCaller, asVisitor, getCaller, trusted } from "@/lib/server/caller";
 import { fail, ok, run, signedOut, type Result } from "@/lib/server/action";
@@ -46,6 +46,16 @@ export async function decideGuardianAction(token: string, decision: "given" | "r
   return run(async () => {
     if (typeof token !== "string" || token.length < 20 || token.length > 200 || (decision !== "given" && decision !== "refused")) return fail("invalid", "This link is not valid.");
     await asVisitor((tx) => guardianDecide(tx, token, decision));
+    return ok();
+  });
+}
+
+/** The applicant answers "needs more information": the application goes back to the review queue. */
+export async function replyNeedsInfoAction(text: string): Promise<Result> {
+  return run(async () => {
+    const me = await getCaller();
+    if (!me) return signedOut();
+    await asCaller(me, (tx) => replyToMoreInfo(tx, me.sub, String(text)));
     return ok();
   });
 }

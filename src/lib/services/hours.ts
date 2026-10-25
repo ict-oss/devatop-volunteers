@@ -50,7 +50,8 @@ export async function decideHours(db: Db, ids: string[], decision: "approved" | 
   const out: HoursDecision = { done: [], refused: [] };
   for (const id of ids) {
     try {
-      const r = await guard(async () => rowsOf(await db.execute(sql`update hour_logs set status = ${decision}::hour_status, decision_note = ${note?.trim().slice(0, 300) || null} where id = ${id}::uuid and status = 'pending' returning id`)));
+      // each one in its own savepoint, so one refusal (e.g. an admin's own hours) cannot spoil the rest of the batch
+      const r = await db.transaction(async (tx) => guard(async () => rowsOf(await tx.execute(sql`update hour_logs set status = ${decision}::hour_status, decision_note = ${note?.trim().slice(0, 300) || null} where id = ${id}::uuid and status = 'pending' returning id`))));
       if (r.length === 0) out.refused.push({ id, message: "Those hours are no longer waiting, or are outside your area." }); else out.done.push(id);
     } catch (e) { if (e instanceof AppError) out.refused.push({ id, message: e.message }); else throw e; }
   }

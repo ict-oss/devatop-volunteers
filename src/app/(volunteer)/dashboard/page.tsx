@@ -7,6 +7,9 @@ import { Photo, usePhoto } from "@/components/Photo";
 import { REVIEW_DAYS, fmtDate } from "@/lib/data";
 import { useOpps, useSignups } from "@/lib/useOpps";
 import { useLive } from "@/lib/live";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { replyNeedsInfoAction } from "@/app/actions/apply";
 import { KEYS, STAGES, useLocal, type Stage } from "@/lib/store";
 import { CERT_CODE, useMe } from "@/lib/useMe";
 import { prefersReducedMotion } from "@/lib/motion";
@@ -28,6 +31,9 @@ const MILESTONES = [[1, "First action"], [10, "10 hours"], [50, "50 hours"], [10
 export default function Dashboard() {
   const { me, approved, pending, myHours, loadDemo, real } = useMe();
   const live = useLive();
+  const router = useRouter();
+  const [reply, setReply] = useState(""); const [replyMsg, setReplyMsg] = useState(""); const [replying, setReplying] = useState(false);
+  const sendReply = async () => { setReplying(true); const r = await replyNeedsInfoAction(reply); setReplying(false); if (r.ok) { setReply(""); router.refresh(); } else setReplyMsg(r.message); };
   const { settings, announcements } = useComms();
   const { ids: signups } = useSignups();
   const [read] = useLocal<Record<string, boolean>>(KEYS.read, EMPTY_READ);
@@ -111,6 +117,13 @@ export default function Dashboard() {
           </ol>
           <p className="mt-4 max-w-2xl text-[length:var(--text-lead)]"><b>What happens next:</b> {nextText(live?.reviewDays ?? REVIEW_DAYS)[me.stage]}</p>
           {me.note && <p className="mt-2 border-l-4 border-orange pl-3"><b>Note from the team:</b> {me.note}</p>}
+          {real && me.stage === "Needs info" && (
+            <div className="mt-4 max-w-2xl border-2 border-ink p-4 grid gap-3">
+              <label className="label" htmlFor="reply">Your answer</label>
+              <textarea id="reply" className="input" rows={4} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Write what the team asked for" />
+              {replyMsg && <p className="err" role="alert">{replyMsg}</p>}
+              <button className="btn justify-self-start" disabled={replying || reply.trim().length < 3} onClick={sendReply}>{replying ? "Sending…" : "Send my answer"}</button>
+            </div>)}
         </div>
       </section>
 

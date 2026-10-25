@@ -18,10 +18,10 @@ export async function loadLive(): Promise<LiveData | null> {
   const me = await getCaller();
   if (!me) return asVisitor(async (tx) => ({ ...EMPTY, opps: await upcomingOpportunities(tx), reviewDays: (await publicSettings(tx)).reviewDays }));
   return asCaller(me, async (tx) => {
-    const [opps, checkin, signups, app, hours, certs, start, guides, ann, wa, settings] = await Promise.all([
-      upcomingOpportunities(tx), checkInWindowOpportunities(tx), mySignups(tx, me.sub), myApplicationRow(tx, me.sub), myHours(tx, me.sub), myCertificates(tx, me.sub),
-      startHere(tx, me.sub), myGuides(tx, me.sub), recentAnnouncements(tx), whatsappGroup(tx), publicSettings(tx),
-    ]);
+    // one after another on purpose: if one query fails, the error names that query instead of "transaction aborted"
+    const opps = await upcomingOpportunities(tx), checkin = await checkInWindowOpportunities(tx), signups = await mySignups(tx, me.sub);
+    const app = await myApplicationRow(tx, me.sub), hours = await myHours(tx, me.sub), certs = await myCertificates(tx, me.sub);
+    const start = await startHere(tx, me.sub), guides = await myGuides(tx, me.sub), ann = await recentAnnouncements(tx), wa = await whatsappGroup(tx), settings = await publicSettings(tx);
     return {
       signedIn: true, opps, checkin, reviewDays: settings.reviewDays,
       signups: Object.fromEntries(signups.filter((s) => s.status !== "cancelled").map((s) => [s.opportunityId, s.status as "confirmed" | "waitlisted"])),

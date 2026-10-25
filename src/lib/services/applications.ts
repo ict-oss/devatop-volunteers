@@ -62,6 +62,16 @@ export async function myApplication(db: Db, userId: string) {
   return { application: app ?? null, profile: profile ?? null };
 }
 
+/** After "needs more information": the applicant answers and the application goes back to the review queue (the only stage change an applicant may make). */
+export async function replyToMoreInfo(db: Db, userId: string, reply: string): Promise<void> {
+  const text = reply.trim();
+  if (text.length < 3) throw new AppError("invalid", "Write your answer first.");
+  const r = await guard(async () => rowsOf(await db.execute(sql`
+    update applications set answers = answers || jsonb_build_object('reply', ${text.slice(0, 1000)}::text), stage = 'submitted'
+    where user_id = ${userId}::uuid and stage = 'needs_info' returning id`)));
+  if (r.length === 0) throw new AppError("not_found", "There is nothing waiting for your answer.");
+}
+
 /* ---------------------------------------------------------------- guardian (an email link; the guardian is not logged in) */
 const sha256 = (t: string) => createHash("sha256").update(t, "utf8").digest("hex");
 export const MAX_GUARDIAN_REQUESTS_PER_DAY = 5;

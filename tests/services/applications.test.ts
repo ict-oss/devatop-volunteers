@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { CONSENTS } from "../../src/lib/consent-texts";
-import { createGuardianRequest, guardianDecide, guardianLinkInfo, guardianState, myApplication, saveApplicantDetails, submitApplication } from "../../src/lib/services/applications";
+import { createGuardianRequest, guardianDecide, guardianLinkInfo, guardianState, myApplication, replyToMoreInfo, saveApplicantDetails, submitApplication } from "../../src/lib/services/applications";
 import { applicationSchema, ageOn } from "../../src/lib/validation/application";
 import { freshServices, rejects } from "./setup";
 
@@ -144,5 +144,19 @@ describe("under-18s: the guardian's emailed link", () => {
     await t.as(caller(id), (tx) => saveApplicantDetails(tx, id, "minor5@example.com", minorInput()));
     for (let i = 0; i < 5; i++) await t.as(caller(id), (tx) => createGuardianRequest(tx, id, { name: "G", email: "g@example.com" }));
     expect((await rejects(t.as(caller(id), (tx) => createGuardianRequest(tx, id, { name: "G", email: "g@example.com" })))).code).toBe("too_many_requests");
+  });
+});
+
+describe("answering 'needs more information'", () => {
+  it("sends the application back to the queue with the applicant's reply; nothing else changes", async () => {
+    const id = await t.newPerson("replier");
+    const { applicationId } = await t.as(caller(id), (tx) => submitApplication(tx, id, "replier@example.com", adultInput()));
+    expect((await rejects(t.as(caller(id), (tx) => replyToMoreInfo(tx, id, "too early")))).code).toBe("not_found"); // nothing was asked yet
+    await t.h.svc("update applications set stage='needs_info', needs_info_note='Send your call-up letter' where id=$1", [applicationId]);
+    await t.as(caller(id), (tx) => replyToMoreInfo(tx, id, "  Here is my call-up letter number 123.  "));
+    const row = (await t.h.svc<{ stage: string; reply: string; needs_info_note: string }>("select stage, answers->>'reply' as reply, needs_info_note from applications where id=$1", [applicationId]))[0];
+    expect(row).toMatchObject({ stage: "submitted", reply: "Here is my call-up letter number 123.", needs_info_note: "Send your call-up letter" });
+    expect((await rejects(t.as(caller(id), (tx) => replyToMoreInfo(tx, id, "twice")))).code).toBe("not_found");
+    expect((await rejects(t.as(caller(id), (tx) => replyToMoreInfo(tx, id, " ")))).code).toBe("invalid");
   });
 });

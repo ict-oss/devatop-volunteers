@@ -45,6 +45,8 @@ export type Application = {
   programme?: string;
   /** Real mode: age worked out by the database, so the Under-18 rules work even when this admin may not see the date of birth. */
   ageYears?: number | null;
+  /** Real mode: the applicant's answer to "needs more information". */
+  reply?: string;
 };
 export type HourLog = { id: string; who: string; mine?: boolean; activity: string; date: string; hours: number; status: "pending" | "approved" | "rejected"; method: "QR" | "Coordinator" | "Remote log"; programme?: string; state?: string };
 export type AuditRow = { id: string; at: string; who: string; action: string; target: string };

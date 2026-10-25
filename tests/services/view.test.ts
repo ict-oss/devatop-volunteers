@@ -6,7 +6,7 @@ import type { QueueRow } from "../../src/lib/services/review";
 const row = (o: Partial<QueueRow> = {}): QueueRow => ({
   id: "a1", userId: "u1", stage: "submitted", submittedAt: "2026-10-20T10:00:00.000Z", first: "Tobi", last: "Ade", state: "Lagos", lga: "Ikeja",
   skills: ["Design"], languages: ["English"], availability: "Weekends", email: null, phone: null, dob: null, ageYears: 16,
-  guardianVerified: false, guardianName: null, departmentIds: ["d1"], consents: [{ kind: "code_of_conduct", version: "conduct-v1" }, { kind: "photo_media", version: "media-v1" }], ...o,
+  guardianVerified: false, guardianName: null, reply: null, departmentIds: ["d1"], consents: [{ kind: "code_of_conduct", version: "conduct-v1" }, { kind: "photo_media", version: "media-v1" }], ...o,
 });
 
 describe("review screen view-model", () => {

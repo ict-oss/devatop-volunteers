@@ -63,7 +63,7 @@ async function login(page, email) {
   });
   await step("applicant dashboard shows the stage from the database", async () => { await amaka.p.goto(BASE + "/dashboard"); await expectText(amaka.p, "Application status"); await expectText(amaka.p, "Submitted"); });
   await step("'application received' email was sent to the applicant", async () => { const m = await (await fetch(AUTH + "/__mails")).json(); if (!m.some((x) => x.to === "amaka@example.com" && /We got your application/.test(x.subject))) throw new Error("no email"); });
-  await step("applying twice is refused", async () => { await amaka.p.goto(BASE + "/apply"); await amaka.p.waitForSelector("#first"); });
+  await step("opening the form again says you have already applied", async () => { await amaka.p.goto(BASE + "/apply"); await expectText(amaka.p, "already applied"); });
 
   console.log("\nAdmin reviews");
   await step("the application is in the queue and can be approved", async () => {

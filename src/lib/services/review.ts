@@ -14,11 +14,13 @@ export type QueueRow = {
   email: string | null; phone: string | null; dob: string | null;
   ageYears: number | null; guardianVerified: boolean; guardianName: string | null;
   departmentIds: string[]; consents: { kind: string; version: string }[];
+  /** what the applicant wrote back after "needs more information" */
+  reply: string | null;
 };
 
 export async function applicationQueue(db: Db): Promise<QueueRow[]> {
   const r = rowsOf<Record<string, unknown>>(await db.execute(sql`
-    select a.id, a.user_id, a.stage, a.submitted_at,
+    select a.id, a.user_id, a.stage, a.submitted_at, a.answers->>'reply' as reply,
            vp.first_name, vp.last_name, vp.state, vp.lga, vp.skills, vp.languages, vp.availability,
            vc.email, vc.phone, vpr.date_of_birth::text as dob,
            public.volunteer_age(a.user_id) as age, public.has_verified_guardian(a.user_id) as guardian_verified,
@@ -40,7 +42,7 @@ export async function applicationQueue(db: Db): Promise<QueueRow[]> {
     email: (x.email as string | null) ?? null, phone: (x.phone as string | null) ?? null, dob: (x.dob as string | null) ?? null,
     ageYears: x.age === null ? null : Number(x.age), guardianVerified: !!x.guardian_verified, guardianName: (x.guardian_name as string | null) ?? null,
     departmentIds: (x.department_ids as string[]) ?? [],
-    consents: ((x.consents as { kind: string; version: string }[]) ?? []),
+    consents: ((x.consents as { kind: string; version: string }[]) ?? []), reply: (x.reply as string | null) ?? null,
   }));
 }
 

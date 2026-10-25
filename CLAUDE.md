@@ -16,7 +16,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
   - `tests/db/`: 50 tests against the real migrations in a local Postgres (PGlite). Run `npm test`.
 - A Supabase project exists (owner: Devatop). Migrations run with `npm run db:migrate`; `npm run db:check` verifies. Secrets live in `.env.local` (never committed) and in Vercel environment variables.
 
-- **Auth and roles (step 1) is built and tested, but switched OFF.** `/login` (email code), `/auth/continue`, `/admin/two-factor`, `/admin/not-allowed`, `src/proxy.ts`, a server guard in the admin layout. All routing rules are plain functions in `src/lib/auth/routing.ts` (tested in `tests/auth/`). While `AUTH_ENABLED` is unset the prototype stays open to reviewers. **To go live:** set `AUTH_ENABLED=true` (Vercel + `.env.local`), after the Supabase settings in `docs/developer/database.md` are on and the first two Super Admins exist. Not done yet: phone-code login (needs an SMS provider), and each admin page calling `requireAdmin(its action)` (done as each page moves onto the database, step 5). The admin layout still shows the prototype role switcher.
+- **Auth and roles (step 1) is built and tested, but switched OFF.** `/login` (email code), `/auth/continue`, `/admin/two-factor`, `/admin/not-allowed`, `src/proxy.ts`, a server guard in the admin layout. All routing rules are plain functions in `src/lib/auth/routing.ts` (tested in `tests/auth/`). While `AUTH_ENABLED` is unset the prototype stays open to reviewers. **To go live:** set `AUTH_ENABLED=true` (Vercel + `.env.local`), after the Supabase settings in `docs/developer/database.md` are on and the first two Super Admins exist. Sign-in is email-code only (no SMS provider, by decision). Not done yet: each admin page calling `requireAdmin(its action)` (done as each page moves onto the database, step 5). The admin layout still shows the prototype role switcher.
 
 **Next, in this order (requirements section 15)**
 1. (done, see above) Auth and roles. Remaining for go-live: Supabase auth settings, first two Super Admins, test the real login by hand, then set `AUTH_ENABLED=true`.
@@ -30,7 +30,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - Next.js 16 (App Router), TypeScript strict. Note: Next 16 calls middleware "proxy" (`src/proxy.ts`, exported `proxy`).
 - Tailwind CSS v4 (tokens in `src/app/globals.css`), custom components (no shadcn yet).
 - PostgreSQL on Supabase, Drizzle ORM, migrations in `src/lib/db/migrations`.
-- Supabase Auth (email or phone one-time code) + TOTP two-factor for admins.
+- Supabase Auth (email one-time code; no SMS) + TOTP two-factor for admins.
 - Zod for validation (to be shared by forms and server), Brevo or Resend for email, `qrcode` for QR, `fflate` for `.xlsx` export.
 - GSAP (ScrollTrigger, DrawSVG) + Lenis: public site only. Vitest for tests.
 

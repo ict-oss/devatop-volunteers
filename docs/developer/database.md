@@ -42,7 +42,7 @@ select id, 'super_admin' from auth.users where email in ('first@devatop.org', 's
 
 ## Supabase settings that must be switched on
 
-Authentication: email one-time code (set the email template to show the code), TOTP multi-factor, Site URL and redirect URLs set to the live address, a custom SMTP sender (Brevo or Resend). SMS needs a phone provider.
+Authentication: email one-time code (set the email template to show the code), TOTP multi-factor, Site URL and redirect URLs set to the live address, a custom SMTP sender (Brevo or Resend). There is no SMS sign-in (Devatop has no phone provider).
 Backups: daily backups on a paid plan, plus a copy stored away from the main server, and a restore tested once before launch.
 
 ## Turning sign-in on

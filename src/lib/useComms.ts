@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useMemo } from "react";
 import { DEFAULT_SETTINGS, DEFAULT_TEMPLATES, isGroupLink, renderEmail, type Settings, type Template, type TemplateId, type Vars } from "./emails";
+import { useLive } from "./live";
 import { KEYS, newId, nowIso, useLocal } from "./store";
 
 export type OutboxRow = { id: string; at: string; to: string; toName: string; kind: TemplateId | "bulk"; subject: string; body: string; html: string; by: string };
@@ -11,11 +12,12 @@ const NONE_T: Partial<Record<TemplateId, Pick<Template, "subject" | "body">>> = 
 
 /** Prototype mail room: "sending" records the rendered email in the outbox. Swap send() for a server action calling Brevo/Resend. */
 export function useComms() {
+  const live = useLive();
   const [outbox, setOutbox] = useLocal<OutboxRow[]>(KEYS.outbox, NONE);
   const [saved, setSaved] = useLocal<Partial<Record<TemplateId, Pick<Template, "subject" | "body">>>>(KEYS.templates, NONE_T);
   const [custom, setSettings] = useLocal<Partial<Settings>>(KEYS.settings, {});
   const [announcements, setAnn] = useLocal<Announcement[]>(KEYS.announcements, NONE_A);
-  const settings: Settings = useMemo(() => ({ ...DEFAULT_SETTINGS, ...custom }), [custom]);
+  const settings: Settings = useMemo(() => (live ? { ...DEFAULT_SETTINGS, whatsappGroup: live.whatsappGroup, reviewDays: live.reviewDays } : { ...DEFAULT_SETTINGS, ...custom }), [custom, live]);
   const templates = useMemo(() => DEFAULT_TEMPLATES.map((t) => ({ ...t, ...saved[t.id] })), [saved]);
 
   const origin = () => (typeof window === "undefined" ? "" : window.location.origin);
@@ -45,5 +47,5 @@ export function useComms() {
   const addAnnouncement = useCallback((title: string, body: string, by: string) => setAnn((p) => [{ id: newId(), at: nowIso(), by, title, body }, ...p]), [setAnn]);
 
   return { outbox, setOutbox, templates, saveTemplate: (id: TemplateId, t: Pick<Template, "subject" | "body">) => setSaved((p) => ({ ...p, [id]: t })), resetTemplate: (id: TemplateId) => setSaved((p) => { const n = { ...p }; delete n[id]; return n; }),
-    settings, saveSettings: (s: Partial<Settings>) => setSettings((p) => ({ ...p, ...s })), render, send, sendBulk, announcements, addAnnouncement };
+    settings, saveSettings: (s: Partial<Settings>) => setSettings((p) => ({ ...p, ...s })), render, send, sendBulk, announcements: live ? live.announcements : announcements, addAnnouncement };
 }

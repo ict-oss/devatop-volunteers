@@ -35,6 +35,11 @@ const SELECT = sql`
 export async function upcomingOpportunities(db: Db): Promise<OpportunityView[]> {
   return rowsOf<Row>(await db.execute(sql`${SELECT} where o.published and o.starts_at > now() order by o.starts_at, o.id`)).map(toView);
 }
+/** Calls whose check-in window is open now (3 hours before the start until 6 hours after the end), for the QR check-in screen. */
+export async function checkInWindowOpportunities(db: Db): Promise<OpportunityView[]> {
+  return rowsOf<Row>(await db.execute(sql`${SELECT} where o.published
+    and now() between o.starts_at - interval '3 hours' and coalesce(o.ends_at, o.starts_at + interval '12 hours') + interval '6 hours' order by o.starts_at`)).map(toView);
+}
 /** The admin's list: everything in their scope, past and unpublished included. */
 export async function adminOpportunities(db: Db): Promise<OpportunityView[]> {
   // published calls are public to read, so the admin's own scope is applied here as well (opp_in_scope is false for a non-admin)

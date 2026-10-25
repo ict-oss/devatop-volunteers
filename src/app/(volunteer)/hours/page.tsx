@@ -9,11 +9,16 @@ export default function Hours() {
   const { me, myHours, approved, pending, logHours } = useMe();
   const [a, setA] = useState(""); const [d, setD] = useState(""); const [h, setH] = useState("");
   const [err, setErr] = useState(""); const [ok, setOk] = useState(false);
-  const submit = (e: React.FormEvent) => {
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const n = Number(h);
     if (!a.trim() || !d || !(n > 0 && n <= 24)) { setErr("Add what you did, the date, and hours between 0.5 and 24."); return; }
-    logHours({ activity: a.trim(), date: d, hours: n }); setA(""); setD(""); setH(""); setErr(""); setOk(true); setTimeout(() => setOk(false), 3000);
+    setBusy(true);
+    const problem = await logHours({ activity: a.trim(), date: d, hours: n });
+    setBusy(false);
+    if (problem) { setErr(problem); return; }
+    setA(""); setD(""); setH(""); setErr(""); setOk(true); setTimeout(() => setOk(false), 3000);
   };
   if (!me) return <div><h1 className="text-[length:var(--text-display)]">My <em className="accent">hours</em></h1><p className="mt-4">Your record starts with your first action. <Link className="underline font-bold" href="/opportunities">Find a call to action.</Link></p></div>;
   return (
@@ -52,7 +57,7 @@ export default function Hours() {
             </div>
             <span className="why -mt-2">An admin approves remote hours before they count. Events checked in by QR are recorded automatically.</span>
             {err && <p className="err" role="alert">{err}</p>}
-            <button className="btn" type="submit">Send for approval</button>
+            <button className="btn" type="submit" disabled={busy}>{busy ? "Sending…" : "Send for approval"}</button>
             {ok && <p role="status" className="font-bold text-stamp">Sent. It stays pending until an admin approves it.</p>}
           </form>
         </div>

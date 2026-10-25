@@ -29,17 +29,17 @@ export function SiteHeader() {
     <header className="relative z-40 border-b border-ink bg-paper">
       <div className="mx-auto max-w-[1500px] px-4 md:px-8 h-16 flex items-center justify-between gap-4">
         <Wordmark />
-        <nav aria-label="Main" className="hidden md:flex items-center gap-5 lg:gap-7 font-bold whitespace-nowrap">
+        <nav aria-label="Main" className="hidden lg:flex items-center gap-5 lg:gap-7 font-bold whitespace-nowrap">
           {NAV.map(([l, h]) => (
             <Link key={h} href={h} className={`py-2 border-b-2 ${path.startsWith(h) ? "border-orange" : "border-transparent hover:border-ink"}`}>{l}</Link>
           ))}
           <Link href="/dashboard" className="py-2 border-b-2 border-transparent hover:border-ink">Log in</Link>
           <Link href="/apply" className="btn btn-sm" data-magnetic data-cursor="Join">Become a volunteer</Link>
         </nav>
-        <button className="md:hidden btn btn-ghost btn-sm" aria-expanded={open} aria-controls="mnav" onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Menu"}</button>
+        <button className="lg:hidden btn btn-ghost btn-sm" aria-expanded={open} aria-controls="mnav" onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Menu"}</button>
       </div>
       {open && (
-        <nav id="mnav" aria-label="Mobile" className="md:hidden absolute inset-x-0 top-16 bg-paper border-b border-ink px-4 pb-4 grid">
+        <nav id="mnav" aria-label="Mobile" className="lg:hidden absolute inset-x-0 top-16 bg-paper border-b border-ink px-4 pb-4 grid">
           {NAV.map(([l, h]) => <Link key={h} href={h} className="display text-5xl py-3 border-b border-rule">{l}</Link>)}
           <Link href="/dashboard" className="display text-5xl py-3 border-b border-rule">Log in</Link>
         </nav>

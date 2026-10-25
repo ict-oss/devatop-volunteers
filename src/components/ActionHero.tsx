@@ -34,10 +34,8 @@ export function ActionHero() {
       probe.textContent = "ACTION";
       document.body.appendChild(probe);
       const natural = probe.getBoundingClientRect().width; probe.remove();
-      // the whole word must show (including the final N): fit it inside the width with a small margin,
-      // and never taller than about half the screen, so the headline and the call to action stay in view
-      const fitWidth = (wrap.current.clientWidth * 0.96 / natural) * 100;
-      const fs = Math.min(fitWidth, window.innerHeight * 0.5);
+      // as big as it can be while the whole word, including the final N, stays inside the page
+      const fs = (wrap.current.clientWidth * 0.97 / natural) * 100;
       setSize(fs);
     };
     fit();

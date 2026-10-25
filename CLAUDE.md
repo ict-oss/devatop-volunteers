@@ -29,7 +29,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 **Not done yet (in this order)**
 1. Replace `src/lib/store.ts` / prototype components once the real system is live (delete `*Proto.tsx`, `useLocal` use, `data.ts` sample data).
 2. Phase 2 and later: department-lead "Team Lead" volunteer role screens, join-another-department requests, tags and bulk actions, vetting notes, documents upload, training completion screens, PWA, WhatsApp Business API, email to volunteers when a department changes.
-3. Photos in Supabase Storage (replace stand-ins), backups with a tested restore, and the developer docs (architecture, runbook, handover are still to write; deploy is drafted).
+3. Photos in Supabase Storage (replace stand-ins), a tested backup restore (record the date in `docs/developer/runbook.md`), and fill in `docs/developer/handover.md` with the real account owners.
 4. Facts marked "(confirm)" must be checked by Devatop (sender address, review days, minimum age 16, department list, event times, coordinator phone, safeguarding renewal period).
 
 ## Stack
@@ -46,7 +46,6 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - `npm run lint`: type-check (`tsc --noEmit`)
 - `npm run db:migrate`: apply migrations to the database in `.env.local`
 - `npm run db:check`: verify the connection and that the schema is installed
-- `npm run db:seed`: fill a NEW database (programmes, departments, settings, trainings, email templates, guides); runs once
 - `npm run db:seed`: fill a NEW database with starting programmes, departments, settings, trainings, email templates and guides (runs once; re-running does nothing)
 - `npm run db:generate`: create a migration from schema changes; `npm run db:permissions` regenerates the permissions seed
 - `npm run photos`: compress photos from `raw-photos/` into `public/photos/`

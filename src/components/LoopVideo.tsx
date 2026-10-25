@@ -30,9 +30,9 @@ export function LoopVideo({ slot, className = "", label }: { slot: string; class
   const s = videoSrc(slot);
   return (
     <div className={`relative overflow-hidden border-2 border-ink bg-ink ${className}`} style={{ aspectRatio: def.ratio }}>
-      <video ref={ref} muted loop playsInline preload="none" poster={s.poster} aria-label={label} className="absolute inset-0 w-full h-full object-cover">
-        <source src={s.webm} type="video/webm" />
-        <source src={s.mp4} type="video/mp4" />
+      <video key={s.mp4 ?? s.webm} ref={ref} muted loop playsInline preload="none" poster={s.poster} aria-label={label} className="absolute inset-0 w-full h-full object-cover">
+        {s.webm && <source src={s.webm} type="video/webm" />}
+        {s.mp4 && <source src={s.mp4} type="video/mp4" />}
       </video>
     </div>
   );

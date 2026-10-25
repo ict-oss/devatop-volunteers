@@ -37,3 +37,8 @@ Vercel > Deployments > pick the last good one > Promote to Production. Setting `
 ## The daily reminder job
 
 `vercel.json` schedules `/api/cron/reminders` at 15:00 UTC (16:00 Lagos). Vercel's Hobby plan allows one run a day. To test by hand: `curl -H "Authorization: Bearer $CRON_SECRET" https://<site>/api/cron/reminders` returns counts only.
+
+
+## Pictures and clips (Admin > Site images)
+
+Uploads go to a public Supabase Storage bucket called `site-images`. You do not create it: the app creates it the first time a Super Admin uploads (it uses `SUPABASE_SERVICE_ROLE_KEY`, so that variable must be set). The bucket accepts WebP and JPEG pictures and MP4 or WebM clips up to 5 MB. Nobody can write to it from a browser with their own login; the server first checks the admin's permission, then gives a one-time upload link for one exact file name. Each replacement is a row in `site_images` (slot, file, who confirmed consent and when) and is in the audit log. "Back to original" deletes the row and the file.

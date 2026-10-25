@@ -34,6 +34,7 @@ async function main() {
   const factors = new Map<string, { id: string; status: "verified" | "unverified" }[]>(); // per user
   const refresh = new Map<string, { id: string; aal: "aal1" | "aal2" }>();
   const mails: unknown[] = [];
+  const buckets = new Set<string>(), files = new Map<string, { data: Buffer; type: string }>();
 
   const userObj = (id: string, email: string) => ({ id, aud: "authenticated", role: "authenticated", email, email_confirmed_at: new Date().toISOString(), phone: "", app_metadata: { provider: "email", providers: ["email"] }, user_metadata: {}, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     factors: (factors.get(id) ?? []).map((f) => ({ id: f.id, factor_type: "totp", status: f.status, friendly_name: "Devatop admin", created_at: new Date().toISOString(), updated_at: new Date().toISOString() })) });
@@ -48,14 +49,36 @@ async function main() {
     const url = new URL(req.url ?? "/", "http://x");
     res.setHeader("access-control-allow-origin", "*"); res.setHeader("access-control-allow-headers", "*"); res.setHeader("access-control-allow-methods", "*");
     if (req.method === "OPTIONS") { res.writeHead(204).end(); return; }
-    let raw = ""; for await (const c of req) raw += c;
-    const body = raw ? JSON.parse(raw) : {};
+    const chunks: Buffer[] = []; for await (const c of req) chunks.push(c as Buffer);
+    const buf = Buffer.concat(chunks), isJson = /json/.test(String(req.headers["content-type"] ?? "")) || !req.headers["content-type"];
+    const body = buf.length && isJson ? JSON.parse(buf.toString()) : {};
     const send = (code: number, o: unknown) => { res.writeHead(code, { "content-type": "application/json" }).end(JSON.stringify(o)); };
     const tok = (req.headers.authorization ?? "").replace(/^Bearer /, ""); const claims = tok ? verify(tok) : null;
     try {
       const p = url.pathname;
       if (p === "/__mails") return send(200, mails);
       if (p === "/brevo/v3/smtp/email") { mails.push({ to: body.to?.[0]?.email, subject: body.subject, text: body.textContent, at: Date.now() }); return send(201, { messageId: "x" }); }
+      // fake Supabase Storage: just enough for Admin > Site images (buckets, signed upload, list, remove, public download)
+      if (p.startsWith("/storage/v1/")) {
+        const sp = p.slice("/storage/v1/".length);
+        if (sp === "bucket" && req.method === "POST") { if (buckets.has(body.name)) return send(409, { statusCode: "409", error: "Duplicate", message: "The resource already exists" }); buckets.add(body.name); return send(200, { name: body.name }); }
+        if (sp.startsWith("bucket/") && req.method === "PUT") return send(200, { message: "ok" });
+        let m2 = sp.match(/^object\/upload\/sign\/([^/]+)\/(.+)$/);
+        if (m2 && req.method === "POST") return send(200, { url: `/object/upload/sign/${m2[1]}/${m2[2]}?token=t-${randomUUID()}` });
+        if (m2 && req.method === "PUT") {
+          const ct = String(req.headers["content-type"] ?? ""), b = ct.match(/boundary=(.+)$/)?.[1];
+          let data = buf, type = "application/octet-stream";
+          if (b) { const part = buf.toString("binary").split("--" + b).find((x) => x.includes("filename")); if (part) { const head = part.indexOf("\r\n\r\n"); type = part.match(/Content-Type: ([^\r\n]+)/i)?.[1] ?? type; data = Buffer.from(part.slice(head + 4).replace(/\r\n$/, ""), "binary"); } }
+          files.set(`${m2[1]}/${decodeURIComponent(m2[2])}`, { data, type }); return send(200, { Key: `${m2[1]}/${m2[2]}` });
+        }
+        m2 = sp.match(/^object\/list\/([^/]+)$/);
+        if (m2) return send(200, [...files.entries()].filter(([k]) => k.startsWith(`${m2![1]}/${body.prefix}/`) && k.split("/").pop()!.includes(body.search ?? "")).map(([k, f]) => ({ name: k.split("/").pop(), metadata: { size: f.data.length } })));
+        m2 = sp.match(/^object\/([^/]+)$/);
+        if (m2 && req.method === "DELETE") { for (const x of body.prefixes ?? []) files.delete(`${m2[1]}/${x}`); return send(200, []); }
+        m2 = sp.match(/^object\/public\/([^/]+)\/(.+)$/);
+        if (m2) { const f = files.get(`${m2[1]}/${decodeURIComponent(m2[2])}`); if (!f) return send(404, { message: "not found" }); res.writeHead(200, { "content-type": f.type, "content-length": f.data.length }).end(f.data); return; }
+        return send(404, { msg: `fake storage: no route ${req.method} ${p}` });
+      }
       if (p === "/auth/v1/otp") return send(200, {});
       if (p === "/auth/v1/verify") {
         if (body.token !== "123456") return send(403, { code: 403, error_code: "otp_expired", msg: "Token has expired or is invalid" });

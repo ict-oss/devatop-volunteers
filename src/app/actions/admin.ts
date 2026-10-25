@@ -13,6 +13,9 @@ import type { Action } from "@/lib/permissions";
 import { logExport, personalExport } from "@/lib/services/reports";
 import { audienceFor, audienceSchema, bulkSchema, deliverBulk, MAX_BULK, recordMessage, resetTemplate, saveMessagingSettings, saveTemplate, settingsSchema, templateSchema } from "@/lib/services/messaging";
 import type { TemplateId } from "@/lib/emails";
+import { removeSiteImage, saveSchema as siteSaveSchema, saveSiteImage } from "@/lib/services/siteImages";
+import { fileSize, removeFiles, uploadTokens } from "@/lib/server/storage";
+import { slotKind } from "@/lib/siteImages";
 
 /** Every admin action: checked on the server for its exact permission (rule 1), then run AS the admin so scope and the database rules apply. */
 async function asAdmin<T>(action: Action, fn: (c: NonNullable<Awaited<ReturnType<typeof adminCaller>>>) => Promise<Result<T>>): Promise<Result<T>> {
@@ -129,5 +132,36 @@ export const exportPersonalAction = async (format: "csv" | "xlsx") => asAdmin("e
 });
 export const logReportExportAction = async (format: "csv" | "xlsx" | "pdf", groupBy: string) => asAdmin("reports.export", async (me) => {
   await logExport(trusted(), me.caller.sub, "export.report", { format, groupBy: String(groupBy).slice(0, 20) });
+  return ok();
+});
+
+/* ---------------------------------------------------------------- site images and clips (Admin > Site images, Super Admin only) */
+const slotInput = z.object({ slotId: z.string().max(60), ext: z.enum(["mp4", "webm"]).optional() });
+/** Step 1: the browser asks where to put the file. Names are made here, so it cannot choose its own. */
+export const prepareSiteImageAction = async (raw: unknown) => asAdmin("settings.edit", async () => {
+  const { slotId, ext } = slotInput.parse(raw);
+  const kind = slotKind(slotId);
+  if (!kind) return fail("invalid", "That picture place does not exist.");
+  const stamp = Date.now();
+  if (kind === "video" && !ext) return fail("invalid", "Use an MP4 or WebM clip.");
+  const paths = kind === "photo" ? [`photos/${slotId}-${stamp}.webp`] : [`videos/${slotId}-${stamp}.${ext}`, `videos/${slotId}-${stamp}.jpg`];
+  return ok(await uploadTokens(paths));
+});
+/** Step 2: the file is uploaded; record it. The size is measured here and the person who confirmed consent is recorded. */
+export const saveSiteImageAction = async (raw: unknown) => asAdmin("settings.edit", async (me) => {
+  const p = siteSaveSchema.safeParse(raw); if (!p.success) return fieldErrors(p.error);
+  const sizes = await Promise.all([p.data.path, p.data.posterPath].filter((x): x is string => !!x).map(fileSize));
+  if (sizes.some((s) => s === null)) return fail("invalid", "The upload did not finish. Please try again.");
+  const total = (sizes as number[]).reduce((a, b) => a + b, 0);
+  let replaced: string[];
+  try { replaced = await asCaller(me.caller, (tx) => saveSiteImage(tx, me.caller.sub, p.data, total)); }
+  catch (e) { await removeFiles([p.data.path, p.data.posterPath].filter((x): x is string => !!x)); throw e; }
+  await removeFiles(replaced);
+  return ok();
+});
+/** Back to the original picture or clip. */
+export const resetSiteImageAction = async (raw: unknown) => asAdmin("settings.edit", async (me) => {
+  const { slotId } = slotInput.parse(raw);
+  await removeFiles(await asCaller(me.caller, (tx) => removeSiteImage(tx, slotId)));
   return ok();
 });

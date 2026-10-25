@@ -11,8 +11,8 @@ gsap.registerPlugin(ScrollTrigger, DrawSVGPlugin);
 export function InkArrow({ className = "", flip = false }: { className?: string; flip?: boolean }) {
   return (
     <svg data-draw viewBox="0 0 160 90" className={className} style={flip ? { transform: "scaleX(-1)" } : undefined} fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M6 14 C 40 4, 92 10, 112 46 C 120 60, 118 72, 108 80" />
-      <path d="M92 76 L 108 82 L 116 64" />
+      <path d="M20 10 C 66 4, 98 28, 84 70" />
+      <path d="M96 62 L 83 76 L 78 57" />
     </svg>
   );
 }

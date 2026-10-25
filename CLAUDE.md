@@ -51,7 +51,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - `npm run photos`: compress photos from `raw-photos/` into `public/photos/`
 
 ## Structure
-- `src/app/(public)`: home, opportunities, about, faqs, contact, privacy, apply, verify, guardian-consent, image-slots (prototype helper, remove before launch)
+- `src/app/(public)`: home, opportunities, about, faqs, contact, privacy, apply, verify, guardian-consent, image-slots (forwards to Admin > Site images)
 - `src/app/(volunteer)`: dashboard, my-opportunities, hours, certificates, chat, guides, profile, checkin
 - `src/app/(admin)/admin`: overview, applications, opportunities, attendance, hours, volunteers, reports, messages, chat, departments, audit
 - `src/lib/permissions.ts`: the only place access rules live (also seeds the database)

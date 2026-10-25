@@ -27,7 +27,7 @@ The prototype needs no database or secrets, so it deploys as it is.
 
 ## Images
 
-Photos are named slots. Put colour originals in `raw-photos/` named after the slot (see `/image-slots`), run `npm run photos`, and they appear. Adults only, never an identifiable child or survivor; every person photographed needs a consent record.
+Photos are named slots. Put colour originals in `raw-photos/` named after the slot (see Admin > Site images), run `npm run photos`, and they appear. Adults only, never an identifiable child or survivor; every person photographed needs a consent record.
 
 ## Where things are
 

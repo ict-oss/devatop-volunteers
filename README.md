@@ -2,14 +2,14 @@
 
 Volunteer platform for Devatop Centre for Africa Development (volunteer.devatop.org): a public site, a volunteer portal and an admin section in one Next.js app. Source of truth for features: the *Devatop Volunteers Platform: Feature Requirements* document.
 
-> **Status: clickable prototype + tested database.** The pages run on sample data saved in the browser (localStorage), so there is no login and nothing is sent anywhere. The real backend (Supabase schema, row-level security, auth helpers) is written and tested but **not yet connected to the pages**. See `docs/developer/database.md`.
+> **Status:** built and tested end to end. With `AUTH_ENABLED` unset the site is the clickable prototype (sample data in the browser, no login), which is what reviewers on the Vercel link see. With `AUTH_ENABLED=true` it is the real system on the database: sign-in by emailed code, two-factor for admins, applications, review, sign-ups, hours, QR check-in, certificates, chat, messages, reports. See `CLAUDE.md` (go-live checklist) and `docs/developer/`.
 
 ## Run it locally (about 5 minutes)
 
 ```bash
 npm install
 npm run dev          # http://localhost:3000
-npm test             # 50 database tests (local Postgres, no accounts needed)
+npm test             # database rules, services and sign-in rules (local Postgres, no accounts needed)
 npm run lint         # type-check
 ```
 
@@ -23,7 +23,7 @@ The prototype needs no database or secrets, so it deploys as it is.
 2. Create a Vercel account with the same Devatop email, choose **Add New > Project**, import the repository and press **Deploy**. Framework (Next.js) and build settings are detected automatically.
 3. Every push to `main` redeploys. Use the generated `*.vercel.app` address to review; point `volunteer.devatop.org` at it later.
 
-**While it is a prototype, anyone with the link can open `/admin`** (there is no login yet). Share the address only with reviewers, or turn on Vercel's password protection for the project.
+**Until `AUTH_ENABLED=true`, anyone with the link can open `/admin`** (the prototype has no login). Share the address only with reviewers, or turn on Vercel's password protection. To go live, follow the checklist in `CLAUDE.md` and `docs/developer/deploy.md`.
 
 ## Images
 
@@ -39,4 +39,7 @@ Photos are named slots. Put colour originals in `raw-photos/` named after the sl
 | `src/lib/db/migrations/` | SQL: schema, rules and row-level security, permissions seed |
 | `src/lib/auth/` | Supabase sign-in, two-factor, session guards, session proxy |
 | `tests/db/` | database tests: every rule, run against the real migrations |
-| `tools/` | map and photo scripts, permissions generator |
+| `src/lib/services/` | all database logic (tested against the real migrations) |
+| `src/app/actions/` | server actions: permission check, validation, then a service |
+| `docs/developer/` | architecture, deploy, runbook, handover, database |
+| `tools/` | map and photo scripts, permissions generator, seed, local end-to-end harness (`tools/e2e`) |

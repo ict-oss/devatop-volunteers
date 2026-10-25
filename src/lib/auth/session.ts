@@ -1,5 +1,9 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { sql } from "drizzle-orm";
+import { db } from "../db";
+import { asUser } from "../db/rls";
+import { rowsOf } from "../services/db";
 import { ROLE_FROM_DB, type Action, type Admin } from "../permissions";
 import { adminGate, type AuthState } from "./routing";
 import { createClient } from "./supabase-server";
@@ -22,13 +26,15 @@ export async function authState(): Promise<AuthState & { userId: string | null }
   const user = await currentUser();
   if (!user) return { signedIn: false, admin: null, aal2: false, userId: null };
   const supabase = await createClient();
-  // a person can always read their own admin_roles row, even before two-factor (policy ar_select)
-  const { data: row } = await supabase.from("admin_roles").select("role, state, programme_id, department_id").eq("user_id", user.id).maybeSingle();
-  const role = row ? ROLE_FROM_DB[row.role as string] : undefined;
+  const { data: claims } = await supabase.auth.getClaims();
+  const aal2 = claims?.claims?.aal === "aal2";
+  // Read as this person (not the owner): a person can always read their OWN admin_roles row, even before two-factor (policy ar_select)
+  const row = rowsOf<{ role: string; state: string | null; programme_id: string | null; department_id: string | null }>(
+    await asUser(db(), { sub: user.id, aal: aal2 ? "aal2" : "aal1" }, (tx) => tx.execute(sql`select role, state, programme_id, department_id from admin_roles where user_id = ${user.id}::uuid`)))[0];
+  const role = row ? ROLE_FROM_DB[row.role] : undefined;
   if (!row || !role) return { signedIn: true, admin: null, aal2: false, userId: user.id };
-  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   return {
-    signedIn: true, userId: user.id, aal2: aal?.currentLevel === "aal2",
+    signedIn: true, userId: user.id, aal2,
     admin: { name: "Admin", role, scope: row.state ?? row.department_id ?? row.programme_id ?? undefined }, // no email or name: rule 5
   };
 }

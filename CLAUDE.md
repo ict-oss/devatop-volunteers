@@ -7,27 +7,30 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 ## Where we are (update this section at the end of every session)
 
 **Built and tested**
-- A clickable prototype of all three areas on sample data stored in the browser (localStorage): public site, 3-step apply flow with under-18 guardian step, volunteer dashboard, admin (applications, opportunities, attendance + QR check-in, hours, volunteers, departments, reports + Excel/CSV/print exports, messages: the 7 emails + bulk email + WhatsApp links, chat rooms, audit log, role switcher). It is deployed from `main` on Vercel for review.
-- The real backend, written and tested but **NOT yet wired into the pages**:
-  - `src/lib/db/schema.ts`: Drizzle schema, about 30 tables.
-  - `src/lib/db/migrations/`: `0000` schema, `0001` rules and row-level security, `0002` permissions seed (generated from `src/lib/permissions.ts`).
-  - `src/lib/auth/`: Supabase clients, email-code sign-in, two-factor (TOTP), server guards (`requireAdmin`), session proxy (`proxy.ts`, switched on by `src/proxy.ts` when `AUTH_ENABLED=true`).
-  - `src/lib/db/rls.ts`: `asUser()` runs Drizzle queries under row-level security.
-  - `tests/db/`: tests against the real migrations in a local Postgres (PGlite). Run `npm test`.
-- A Supabase project exists (owner: Devatop). Migrations run with `npm run db:migrate`; `npm run db:check` verifies. Secrets live in `.env.local` (never committed) and in Vercel environment variables.
+- A clickable prototype of all three areas on sample data stored in the browser (localStorage). It stays the default: with `AUTH_ENABLED` unset the whole site behaves as before, so reviewers on the Vercel link are not affected.
+- The real system, switched on by `AUTH_ENABLED=true` (set in Vercel and `.env.local` at go-live). Every screen below reads and writes the database as the signed-in person (row-level security applies; scope in the query):
+  - Sign-in by emailed code, two-factor for admins, 30-minute admin idle timeout, `/admin/not-allowed`.
+  - Application on the database (3-step form, consents with exact wording, under-18 guardian by emailed link), admin review queue (approve / reject / needs info, with the emails), approval puts the volunteer in their departments.
+  - Volunteer dashboard, calls and sign-ups with waitlist, hours (remote log, approval), QR check-in/out, certificates (issue, PDF with QR, public verify page), profile, "download my data", delete account, guides with read receipts, chat rooms (database decides access), announcements.
+  - Admin: overview, volunteers, opportunities, attendance + QR, hours, certificates, departments (add/rename/merge/archive/restore), messages (send to a group, edit the seven emails, WhatsApp link and sender settings, sent log), reports with logged exports, audit log, site images.
+  - Daily reminder cron: `/api/cron/reminders` (Vercel cron in `vercel.json`, protected by `CRON_SECRET`).
+- How it is built (read this before changing anything): `src/lib/services/*` hold ALL database logic as plain functions that take a Drizzle `db`/transaction; they are tested against the real migrations in PGlite (`tests/services/`, `tests/db/`). `src/app/actions/*` are thin server actions (check the permission, validate with Zod, run a service as the person via `asCaller`). Pages are server components that pick the real component or the prototype one with `authEnabled()`. Screens built on the prototype keep working through hooks (`useMe`, `useOpps`, `useSignups`, `useComms`) that return real data from `LiveContext` (`src/lib/live.tsx`, filled by `src/lib/server/live.ts`).
+- Rule when writing server code: never `await` a query on the trusted connection (`trusted()`) inside an `asCaller` callback. Finish the person's query first (the local test database has one connection and would deadlock).
+- Local end-to-end run with no accounts: `npx tsx tools/e2e/harness.ts` (in-memory Postgres + fake Supabase Auth + fake Brevo), start the app with the printed variables plus `AUTH_ENABLED=true DB_POOL_MAX=1`, then `node tools/e2e/scenario.cjs` (needs Playwright). The code `123456` is accepted everywhere.
+- A Supabase project exists (owner: Devatop). `npm run db:migrate`, `npm run db:check`, then `npm run db:seed` once. Secrets live in `.env.local` (never committed) and in Vercel environment variables.
+- Images: stand-in artwork in `public/photos/`, silent clips in `public/video/` (`node tools/standins/make.mjs` regenerates). Admin > Site images replaces a slot (prototype: that browser only; cutover: save to Supabase Storage with a small `site_images` table, show the schema first). Replace stand-ins with real, consented photos.
 
-- **Auth and roles (step 1) is built and tested, but switched OFF.** `/login` (email code), `/auth/continue`, `/admin/two-factor`, `/admin/not-allowed`, `src/proxy.ts`, a server guard in the admin layout. All routing rules are plain functions in `src/lib/auth/routing.ts` (tested in `tests/auth/`). While `AUTH_ENABLED` is unset the prototype stays open to reviewers. **To go live:** set `AUTH_ENABLED=true` (Vercel + `.env.local`), after the Supabase settings in `docs/developer/database.md` are on and the first two Super Admins exist. Sign-in is email-code only (no SMS provider, by decision). Not done yet: each admin page calling `requireAdmin(its action)` (done as each page moves onto the database, step 5). The admin layout still shows the prototype role switcher.
+**Go-live checklist (see docs/developer/deploy.md)**
+1. Supabase: email code on, authenticator two-factor on, email template shows the code, Site URL set, SMTP sender (Brevo) set.
+2. `npm run db:migrate && npm run db:seed` on the live database; sign in once with each of the first two Super Admin emails, then run the SQL in `docs/developer/database.md`.
+3. Vercel variables: everything in `.env.example` (`BREVO_API_KEY`, `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` = Session pooler). Verify the sender address in Brevo.
+4. Set `AUTH_ENABLED=true`, redeploy, sign in as a Super Admin, set the WhatsApp link in Admin > Messages > Settings.
 
-- **Images and clips:** every image slot (`src/lib/images.ts`) now has stand-in artwork in `public/photos/` (abstract, no people; regenerate with `node tools/standins/make.mjs`, needs Playwright + ffmpeg). Two silent looping clips in `public/video/` (`LoopVideo`: plays only on fast connections, never with reduced motion). Admin > Site images (`/admin/images`, Super Admin) replaces any slot; in the prototype a replacement lives in that browser only (localStorage). **To do at cutover:** save replacements to Supabase Storage (needs a small `site_images` table: show the schema for review first) so every visitor sees them; replace the stand-ins with real, consented photos (log consent in `docs/photo-consent.csv`).
-- The home hero word ACTION is now fitted so the whole word (including the final N) always shows, and is capped at half the screen height.
-
-**Next, in this order (requirements section 15)**
-1. (done, see above) Auth and roles. Remaining for go-live: Supabase auth settings, first two Super Admins, test the real login by hand, then set `AUTH_ENABLED=true`.
-2. (done) Seed file: `src/lib/db/seed-data.ts` + `seed.ts`, run with `npm run db:seed` on the live database once. Placeholders marked (confirm). Department list: requirements section 18 has 8, the prototype has 10 and calls one "Policy and Research" (section 18: "Research and Advocacy"): Devatop to confirm.
-3. Application flow on the database (consents, guardian link, OTP).
-4. Admin review, volunteer dashboard, opportunities and sign-ups, QR check-in, hours, certificates (PDF with QR), real emails (Brevo/Resend), reminder cron.
-5. Replace `src/lib/store.ts` (localStorage) page by page; delete it when nothing imports it.
-6. Remaining: guides editor, "download my data", photos in Supabase Storage, PWA, backups with a tested restore, developer docs (README, architecture, deploy, runbook, handover).
+**Not done yet (in this order)**
+1. Replace `src/lib/store.ts` / prototype components once the real system is live (delete `*Proto.tsx`, `useLocal` use, `data.ts` sample data).
+2. Phase 2 and later: department-lead "Team Lead" volunteer role screens, join-another-department requests, tags and bulk actions, vetting notes, documents upload, training completion screens, PWA, WhatsApp Business API, email to volunteers when a department changes.
+3. Photos in Supabase Storage (replace stand-ins), backups with a tested restore, and the developer docs (architecture, runbook, handover are still to write; deploy is drafted).
+4. Facts marked "(confirm)" must be checked by Devatop (sender address, review days, minimum age 16, department list, event times, coordinator phone, safeguarding renewal period).
 
 ## Stack
 - Next.js 16 (App Router), TypeScript strict. Note: Next 16 calls middleware "proxy" (`src/proxy.ts`, exported `proxy`).
@@ -39,10 +42,11 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 
 ## Commands
 - `npm run dev`: run locally (http://localhost:3000)
-- `npm test`: database tests (no accounts needed)
+- `npm test`: all tests (database rules, services, sign-in rules; no accounts needed)
 - `npm run lint`: type-check (`tsc --noEmit`)
 - `npm run db:migrate`: apply migrations to the database in `.env.local`
 - `npm run db:check`: verify the connection and that the schema is installed
+- `npm run db:seed`: fill a NEW database (programmes, departments, settings, trainings, email templates, guides); runs once
 - `npm run db:seed`: fill a NEW database with starting programmes, departments, settings, trainings, email templates and guides (runs once; re-running does nothing)
 - `npm run db:generate`: create a migration from schema changes; `npm run db:permissions` regenerates the permissions seed
 - `npm run photos`: compress photos from `raw-photos/` into `public/photos/`

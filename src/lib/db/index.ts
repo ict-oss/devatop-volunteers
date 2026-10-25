@@ -10,5 +10,5 @@ import * as schema from "./schema";
  * For anything done on behalf of a signed-in person use `asUser()` from ./rls so the database enforces their rights.
  */
 let client: ReturnType<typeof postgres> | undefined;
-export const db = () => drizzle((client ??= postgres(serverEnv().DATABASE_URL, { max: 5, prepare: false })), { schema }); // prepare:false for Supabase's pooler
+export const db = () => drizzle((client ??= postgres(serverEnv().DATABASE_URL, { max: Number(process.env.DB_POOL_MAX) || 5, prepare: false })), { schema }); // prepare:false for Supabase's pooler
 export { schema };

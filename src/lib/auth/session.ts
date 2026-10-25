@@ -1,6 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
-import { can, ROLE_FROM_DB, type Action, type Admin } from "../permissions";
+import { ROLE_FROM_DB, type Action, type Admin } from "../permissions";
+import { adminGate, type AuthState } from "./routing";
 import { createClient } from "./supabase-server";
 
 /**
@@ -16,18 +17,19 @@ export async function currentUser() {
 
 export type AdminSession = { userId: string; admin: Admin; aal2: boolean };
 
-export async function currentAdmin(): Promise<AdminSession | null> {
+/** Who is this? Signed in or not, an admin or not, and whether they have completed two-factor. */
+export async function authState(): Promise<AuthState & { userId: string | null }> {
   const user = await currentUser();
-  if (!user) return null;
+  if (!user) return { signedIn: false, admin: null, aal2: false, userId: null };
   const supabase = await createClient();
+  // a person can always read their own admin_roles row, even before two-factor (policy ar_select)
   const { data: row } = await supabase.from("admin_roles").select("role, state, programme_id, department_id").eq("user_id", user.id).maybeSingle();
-  if (!row) return null;
+  const role = row ? ROLE_FROM_DB[row.role as string] : undefined;
+  if (!row || !role) return { signedIn: true, admin: null, aal2: false, userId: user.id };
   const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  const role = ROLE_FROM_DB[row.role as string];
-  if (!role) return null;
   return {
-    userId: user.id, aal2: aal?.currentLevel === "aal2",
-    admin: { name: user.email ?? "Admin", role, scope: row.state ?? row.department_id ?? row.programme_id ?? undefined },
+    signedIn: true, userId: user.id, aal2: aal?.currentLevel === "aal2",
+    admin: { name: "Admin", role, scope: row.state ?? row.department_id ?? row.programme_id ?? undefined }, // no email or name: rule 5
   };
 }
 
@@ -37,11 +39,13 @@ export async function requireVolunteer() {
   return user;
 }
 
-/** Signed in, admin, two-factor completed, and allowed to do `action`. Otherwise redirect: login, set up 2FA, or "not allowed". */
+/**
+ * Signed in, admin, two-factor completed, and allowed to do `action`. Otherwise redirect:
+ * login, set up two-factor, or the "not allowed" page (a volunteer who opens /admin lands there).
+ */
 export async function requireAdmin(action: Action): Promise<AdminSession> {
-  const s = await currentAdmin();
-  if (!s) redirect("/login?next=/admin");
-  if (!s.aal2) redirect("/admin/two-factor");
-  if (!can(s.admin, action)) redirect("/admin/not-allowed");
-  return s;
+  const s = await authState();
+  const to = adminGate(s, action);
+  if (to) redirect(to);
+  return { userId: s.userId!, admin: s.admin!, aal2: true };
 }

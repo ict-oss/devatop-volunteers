@@ -25,3 +25,6 @@ export const publicEnv = () => publicSchema.parse({
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
 });
 export const serverEnv = () => serverSchema.parse(process.env);
+
+/** Sign-in protection (the proxy and the server guard on /admin) is off until this is "true". Turned on at cutover, once the pages read real data. */
+export const authEnabled = () => process.env.AUTH_ENABLED === "true";

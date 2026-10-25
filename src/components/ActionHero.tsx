@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { DURATION, EASE, STAGGER, prefersReducedMotion } from "@/lib/motion";
-import { photoSrc } from "@/lib/images";
+import { photoSrc, HERO_PHOTOS_IN_LETTERS } from "@/lib/images";
 import { probePhoto } from "./Photo";
 
 const WORD = "ACTION".split("");
@@ -17,11 +17,12 @@ const SLOT_IDS = ["hero-1", "hero-2", "hero-3"];
 export function ActionHero() {
   const wrap = useRef<HTMLDivElement>(null);
   const word = useRef<HTMLDivElement>(null);
+  const solid = !HERO_PHOTOS_IN_LETTERS;
   const [have, setHave] = useState<boolean[]>([false, false, false]);
   const [size, setSize] = useState(0); // px font-size
   const [dims, setDims] = useState({ w: 0, h: 0, offs: [] as number[] });
 
-  useEffect(() => { SLOT_IDS.forEach((id, i) => probePhoto(id).then((ok) => ok && setHave((h) => h.map((v, j) => (j === i ? true : v))))); }, []);
+  useEffect(() => { if (!HERO_PHOTOS_IN_LETTERS) return; SLOT_IDS.forEach((id, i) => probePhoto(id).then((ok) => ok && setHave((h) => h.map((v, j) => (j === i ? true : v))))); }, []);
 
   // size the word so all of ACTION fits; then measure each letter's offset
   useLayoutEffect(() => {
@@ -58,6 +59,7 @@ export function ActionHero() {
     const ctx = gsap.context(() => {
       if (prefersReducedMotion()) return;
       gsap.from(".hero-letter", { yPercent: 110, duration: DURATION.slow - 0.2, ease: EASE, stagger: STAGGER });
+      if (solid) return;
       const tl = gsap.timeline({ repeat: -1, delay: 2 });
       tl.to("[data-layer='1']", { opacity: 1, duration: DURATION.slow, ease: "none" }, "+=2.6")
         .to("[data-layer='2']", { opacity: 1, duration: DURATION.slow, ease: "none" }, "+=2.6")
@@ -69,12 +71,12 @@ export function ActionHero() {
   return (
     <div ref={wrap} className="relative overflow-hidden" data-cursor="Join">
       <div ref={word} className="relative" style={{ fontSize: size ? `${size}px` : "30vw", visibility: size ? "visible" : "hidden" }}>
-        {[0, 1, 2].map((l) => (
+        {(solid ? [0] : [0, 1, 2]).map((l) => (
           <div key={l} data-layer={l} aria-hidden={l > 0 ? true : undefined} className={`display whitespace-nowrap overflow-hidden ${l > 0 ? "absolute inset-0" : ""}`} style={{ opacity: l === 0 ? 1 : 0, lineHeight: 0.9, paddingTop: "0.02em" }}>
             {l === 0 && <span className="sr-only">Action</span>}
             {WORD.map((c, i) => (
-              <span key={i} className={`hero-letter inline-block text-transparent ${have[l] ? "" : HATCH[l]}`} aria-hidden={true}
-                style={{
+              <span key={i} className={`hero-letter inline-block ${solid ? "text-orange" : `text-transparent ${have[l] ? "" : HATCH[l]}`}`} aria-hidden={true}
+                style={solid ? undefined : {
                   WebkitBackgroundClip: "text", backgroundClip: "text",
                   backgroundImage: have[l] ? `url(${photoSrc(SLOT_IDS[l])})` : undefined,
                   backgroundSize: dims.w ? `${dims.w}px ${dims.h}px` : "cover",

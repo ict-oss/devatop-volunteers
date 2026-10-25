@@ -68,3 +68,6 @@ export const VIDEOS: Record<string, VideoSlot> = {
   "loop-ticker": { id: "loop-ticker", ratio: "3/1", where: "About page: the moving words under the title", brief: "Silent loop, 6 seconds or less, under 300 KB. Scrolling words." },
 };
 export const videoSrc = (id: string) => ({ mp4: `/video/${id}.mp4`, webm: `/video/${id}.webm`, poster: `/video/${id}.jpg` });
+
+/** Home hero: false = ACTION is solid orange. Set to true to show the hero-1/2/3 photos through the letters. */
+export const HERO_PHOTOS_IN_LETTERS = false;

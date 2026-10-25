@@ -33,6 +33,7 @@ const FRIENDLY: Record<string, string> = {
   department_has_history: "This department has history (members, calls or guides), so it cannot be deleted. Archive or merge it instead.",
   duplicate_name: "A department with that name already exists.",
   no_approved_hours: "This volunteer has no approved hours yet.",
+  too_big: "That file is too big. Pick a smaller one.",
   certificate_needs_approved_hours: "Certificates can only be issued for approved hours.",
 };
 export const friendly = (code: string) => FRIENDLY[code] ?? "Something went wrong. Please try again.";

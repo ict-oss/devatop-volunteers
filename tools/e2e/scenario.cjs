@@ -153,6 +153,25 @@ async function login(page, email) {
   });
   await step("personal-data export is logged", async () => { await admin.p.goto(BASE + "/admin/reports"); await admin.p.getByRole("button", { name: "CSV" }).last().click(); await expectText(admin.p, "downloaded and logged"); });
   await step("site images page loads for a Super Admin", async () => { await admin.p.goto(BASE + "/admin/images"); await expectText(admin.p, "Site images"); });
+  await step("admin replaces a picture and a clip; visitors see them; reset restores the originals", async () => {
+    await admin.p.goto(BASE + "/admin/images");
+    const pic = admin.p.locator("li", { hasText: "hero-feature" }).first();
+    await pic.getByRole("checkbox").check(); await pic.locator("input[type=file]").setInputFiles("public/photos/hero-1.webp"); await pic.getByText("Replaced").first().waitFor();
+    const clip = admin.p.locator("li", { hasText: "loop-tally" }).first();
+    await clip.getByRole("checkbox").check(); await clip.locator("input[type=file]").setInputFiles("public/video/loop-tally.webm"); await clip.getByText("Replaced").first().waitFor();
+    await visitor.p.goto(BASE + "/");
+    await visitor.p.locator('[data-slot="hero-feature"] img[src*="/site-images/photos/hero-feature-"]').waitFor({ state: "attached" });
+    const src = await visitor.p.locator("video source").first().getAttribute("src"); if (!/site-images\/videos\/loop-tally-.*\.webm/.test(src ?? "")) throw new Error("clip not replaced: " + src);
+    const poster = await visitor.p.locator("video").first().getAttribute("poster"); if (!/site-images\/videos\/loop-tally-.*\.jpg/.test(poster ?? "")) throw new Error("poster not replaced: " + poster);
+    const r = await fetch(src); if (r.status !== 200 || +r.headers.get("content-length") < 1000) throw new Error("clip file missing " + r.status);
+    await admin.p.goto(BASE + "/admin/images");
+    for (const id of ["hero-feature", "loop-tally"]) { await admin.p.locator("li", { hasText: id }).first().getByRole("button", { name: "Back to original" }).click(); await admin.p.locator("li", { hasText: id }).first().getByText("Original restored").waitFor(); }
+    await visitor.p.goto(BASE + "/"); const back = await visitor.p.locator("video source").first().getAttribute("src"); if (!/^\/video\/loop-tally\.webm$/.test(back ?? "")) throw new Error("not restored: " + back);
+  });
+  await step("a volunteer cannot save a site image (server refuses)", async () => {
+    // amaka is a plain volunteer: the page sends her away, and the server action would refuse anyway
+    await amaka.p.goto(BASE + "/admin/images"); await amaka.p.waitForURL(/not-allowed/);
+  });
   await step("admin chat shows the rooms and the volunteer's earlier message", async () => { await admin.p.goto(BASE + "/admin/chat"); await admin.p.getByRole("button", { name: /All volunteers/ }).first().click(); await expectText(admin.p, "Hello from Amaka"); });
 
   console.log("\nCron and account deletion");

@@ -342,6 +342,19 @@ export const appSettings = pgTable("app_settings", {
   updatedAt: at("updated_at").notNull().defaultNow(),
 });
 
+/** A replacement for one picture or clip slot (ids come from src/lib/images.ts). The file itself is in the public Storage bucket `site-images`. */
+export const siteImages = pgTable("site_images", {
+  slotId: text("slot_id").primaryKey(),
+  kind: text("kind").notNull(), // 'photo' | 'video'
+  path: text("path").notNull(), // file in the bucket
+  posterPath: text("poster_path"), // video only: still frame shown before it plays
+  bytes: integer("bytes").notNull(),
+  consentBy: uuid("consent_by").notNull().references(() => users.id, { onDelete: "restrict" }), // the admin who confirmed everyone shown has agreed
+  consentAt: at("consent_at").notNull().defaultNow(),
+  consentVersion: text("consent_version").notNull().default("site-image-v1"),
+  updatedAt: at("updated_at").notNull().defaultNow(),
+});
+
 /** Room ids: 'general' | 'heads' | 'dept:<uuid>' | 'support:<volunteer uuid>'. Access is decided by chat_can_read/chat_can_post. */
 export const chatMessages = pgTable("chat_messages", {
   id: uuid("id").primaryKey().defaultRandom(),

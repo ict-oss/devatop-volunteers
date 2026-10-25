@@ -47,7 +47,15 @@ const readOverrides = () => {
   try { overrides = JSON.parse(localStorage.getItem(OVERRIDE_KEY) || "{}"); } catch { overrides = {}; }
   return overrides!;
 };
-export const photoOverride = (id: string): string | null => (typeof window === "undefined" ? null : readOverrides()[id] ?? null);
+/** Replacements saved by an admin on the real system (Supabase Storage). Everyone sees these. Filled from LiveContext. */
+export type ReplacedImage = { kind: "photo" | "video"; url: string; poster?: string };
+let replaced: Record<string, ReplacedImage> = {};
+export const setReplacedImages = (m: Record<string, ReplacedImage>) => { replaced = m; };
+export const photoOverride = (id: string): string | null => {
+  const r = replaced[id];
+  if (r?.kind === "photo") return r.url;
+  return typeof window === "undefined" ? null : readOverrides()[id] ?? null;
+};
 /** Pass null to go back to the default image. Throws if the browser's storage is full. */
 export function setPhotoOverride(id: string, dataUrl: string | null) {
   const next = { ...readOverrides() };
@@ -67,7 +75,11 @@ export const VIDEOS: Record<string, VideoSlot> = {
   "loop-tally": { id: "loop-tally", ratio: "7/3", where: "Home page: the tally band under the hero", brief: "Silent loop, 6 seconds or less, under 300 KB. Tally marks being counted." },
   "loop-ticker": { id: "loop-ticker", ratio: "3/1", where: "About page: the moving words under the title", brief: "Silent loop, 6 seconds or less, under 300 KB. Scrolling words." },
 };
-export const videoSrc = (id: string) => ({ mp4: `/video/${id}.mp4`, webm: `/video/${id}.webm`, poster: `/video/${id}.jpg` });
+export const videoSrc = (id: string): { mp4: string | null; webm: string | null; poster: string } => {
+  const r = replaced[id];
+  if (r?.kind === "video") return { mp4: r.url.endsWith(".mp4") ? r.url : null, webm: r.url.endsWith(".webm") ? r.url : null, poster: r.poster ?? `/video/${id}.jpg` };
+  return { mp4: `/video/${id}.mp4`, webm: `/video/${id}.webm`, poster: `/video/${id}.jpg` };
+};
 
 /** Home hero: false = ACTION is solid orange. Set to true to show the hero-1/2/3 photos through the letters. */
 export const HERO_PHOTOS_IN_LETTERS = false;

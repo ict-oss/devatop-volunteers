@@ -30,9 +30,11 @@ export type ApplyProps = {
   departments: { id: string; name: string }[];
   minAge: number;
   reviewDays: number;
+  /** real mode: this person already has an application (shown unless they have just submitted it on this page) */
+  already?: boolean;
 };
 
-export function ApplyForm({ real, departments, minAge, reviewDays }: ApplyProps) {
+export function ApplyForm({ real, departments, minAge, reviewDays, already = false }: ApplyProps) {
   const [d, setD, hasDraft] = useLocal<Draft>(KEYS.draft, EMPTY);
   const [, setApps] = useLocal<Application[]>(KEYS.apps, SEED_APPS);
   const [err, setErr] = useState<Record<string, string>>({});
@@ -163,6 +165,16 @@ export function ApplyForm({ real, departments, minAge, reviewDays }: ApplyProps)
   const reset = () => { setD(EMPTY); setErr({}); setOtp(""); setOtpSent(false); };
 
   if (!mounted) return <div className="min-h-[70vh]" />;
+
+  if (real && already && !d.done) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 md:px-8 py-16 min-h-[60vh]">
+        <h1 className="text-[length:var(--text-display)]">You have already <em className="accent">applied.</em></h1>
+        <p className="mt-4 text-[length:var(--text-lead)]">Your application is in. Your dashboard shows where it stands and what happens next.</p>
+        <Link href="/dashboard" className="btn mt-6">See my status</Link>
+      </div>
+    );
+  }
 
   if (d.done) {
     return (

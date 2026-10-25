@@ -4,6 +4,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
 const BASE = process.env.E2E_BASE || "http://localhost:3150", AUTH = "http://127.0.0.1:54330";
 const results = []; let failed = 0;
 const step = async (name, fn) => { try { const r = await fn(); results.push(["ok", name, r ?? ""]); console.log("  ok  ", name, r ?? ""); } catch (e) { failed++; results.push(["FAIL", name, e.message]); console.log("  FAIL", name, "-", e.message.split("\n")[0]); } };
+const formReset = (page) => page.waitForFunction(() => document.querySelector("#t") && document.querySelector("#t").value === "");
 const expectText = async (page, text, timeout = 15000) => page.getByText(text, { exact: false }).first().waitFor({ timeout });
 const when = (hours) => { const d = new Date(Date.now() + hours * 36e5); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
 
@@ -37,12 +38,12 @@ async function login(page, email) {
     await admin.p.fill("#t", "AI4Rights school sessions"); await admin.p.selectOption("#st", "Lagos"); await admin.p.fill("#pl", "Yaba"); await admin.p.fill("#cm", "4 hrs / Saturday");
     await admin.p.fill("#sa", when(24 * 6)); await admin.p.fill("#ea", when(24 * 6 + 4)); await admin.p.fill("#dl", when(24 * 5)); await admin.p.fill("#sl", "2");
     await admin.p.getByRole("button", { name: "Teaching", exact: true }).click(); await admin.p.getByRole("button", { name: "Publish opportunity" }).click();
-    await expectText(admin.p, "Published. It is on the public board");
+    await expectText(admin.p, "Published. It is on the public board"); await formReset(admin.p);
   });
   await step("admin publishes a call starting within the hour (for QR check-in)", async () => {
     await admin.p.fill("#t", "Walk today"); await admin.p.selectOption("#st", "Lagos"); await admin.p.fill("#pl", "Ikeja"); await admin.p.fill("#cm", "2 hrs");
     await admin.p.fill("#sa", when(0.5)); await admin.p.fill("#dl", when(0.25)); await admin.p.fill("#sl", "5");
-    await admin.p.getByRole("button", { name: "Publish opportunity" }).click(); await expectText(admin.p, "Published. It is on the public board");
+    await admin.p.getByRole("button", { name: "Publish opportunity" }).click(); await expectText(admin.p, "Published. It is on the public board"); await formReset(admin.p);
   });
   await step("a call with sign-ups closing after the start is refused with a plain message", async () => {
     await admin.p.fill("#t", "Bad dates"); await admin.p.selectOption("#st", "Lagos"); await admin.p.fill("#sa", when(48)); await admin.p.fill("#dl", when(72)); await admin.p.fill("#sl", "3");
@@ -63,7 +64,8 @@ async function login(page, email) {
   });
   await step("applicant dashboard shows the stage from the database", async () => { await amaka.p.goto(BASE + "/dashboard"); await expectText(amaka.p, "Application status"); await expectText(amaka.p, "Submitted"); });
   await step("'application received' email was sent to the applicant", async () => { const m = await (await fetch(AUTH + "/__mails")).json(); if (!m.some((x) => x.to === "amaka@example.com" && /We got your application/.test(x.subject))) throw new Error("no email"); });
-  await step("opening the form again says you have already applied", async () => { await amaka.p.goto(BASE + "/apply"); await expectText(amaka.p, "already applied"); });
+  await step("opening the form again does not offer a second application", async () => { await amaka.p.goto(BASE + "/apply"); await amaka.p.getByText(/already applied|We have your application/).first().waitFor({ timeout: 15000 }); if (await amaka.p.locator("#first").count()) throw new Error("the blank form is offered again"); });
+  await step("a different browser (no saved draft) is told the same", async () => { const o = await mk(); await login(o.p, "amaka@example.com"); await o.p.goto(BASE + "/apply"); await expectText(o.p, "already applied"); await o.c.close(); });
 
   console.log("\nAdmin reviews");
   await step("the application is in the queue and can be approved", async () => {

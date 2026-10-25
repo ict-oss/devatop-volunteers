@@ -33,6 +33,7 @@ PostgreSQL on Supabase, Drizzle ORM. Schema: `src/lib/db/schema.ts`. SQL: `src/l
 - **Change the schema:** edit `schema.ts`, run `npm run db:generate`, then add policies and rules in a custom migration (`npx drizzle-kit generate --custom --name=...`). Add a test in `tests/db/`.
 - **Query as a person:** `asUser(db(), { sub, aal }, (tx) => ...)` from `src/lib/db/rls.ts` runs the query under row-level security. The plain `db()` connection is the database owner and **bypasses** it: use it only for trusted server jobs.
 - **Apply to Supabase:** put the Session pooler connection string in `.env.local` as `DATABASE_URL`, then `npm run db:migrate` and `npm run db:check`.
+- **Starting data:** after `db:migrate`, run `npm run db:seed` once. It adds the programmes, departments, settings (`min_age` 16, `review_days` 7, an empty `whatsapp_group`), the two required trainings, the seven email templates and the starter guides. Running it again does nothing, so edits made in the admin section are never overwritten. The list lives in `src/lib/db/seed-data.ts`.
 - **First Super Admins:** both people sign in once with an email code, then run in Supabase's SQL editor:
 
 ```sql

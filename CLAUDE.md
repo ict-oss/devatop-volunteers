@@ -13,7 +13,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
   - `src/lib/db/migrations/`: `0000` schema, `0001` rules and row-level security, `0002` permissions seed (generated from `src/lib/permissions.ts`).
   - `src/lib/auth/`: Supabase clients, email-code sign-in, two-factor (TOTP), server guards (`requireAdmin`), session proxy (`proxy.ts`, switched on by `src/proxy.ts` when `AUTH_ENABLED=true`).
   - `src/lib/db/rls.ts`: `asUser()` runs Drizzle queries under row-level security.
-  - `tests/db/`: 50 tests against the real migrations in a local Postgres (PGlite). Run `npm test`.
+  - `tests/db/`: tests against the real migrations in a local Postgres (PGlite). Run `npm test`.
 - A Supabase project exists (owner: Devatop). Migrations run with `npm run db:migrate`; `npm run db:check` verifies. Secrets live in `.env.local` (never committed) and in Vercel environment variables.
 
 - **Auth and roles (step 1) is built and tested, but switched OFF.** `/login` (email code), `/auth/continue`, `/admin/two-factor`, `/admin/not-allowed`, `src/proxy.ts`, a server guard in the admin layout. All routing rules are plain functions in `src/lib/auth/routing.ts` (tested in `tests/auth/`). While `AUTH_ENABLED` is unset the prototype stays open to reviewers. **To go live:** set `AUTH_ENABLED=true` (Vercel + `.env.local`), after the Supabase settings in `docs/developer/database.md` are on and the first two Super Admins exist. Sign-in is email-code only (no SMS provider, by decision). Not done yet: each admin page calling `requireAdmin(its action)` (done as each page moves onto the database, step 5). The admin layout still shows the prototype role switcher.
@@ -23,7 +23,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 
 **Next, in this order (requirements section 15)**
 1. (done, see above) Auth and roles. Remaining for go-live: Supabase auth settings, first two Super Admins, test the real login by hand, then set `AUTH_ENABLED=true`.
-2. Seed file: programmes, departments, settings (`min_age`, `review_days`, `whatsapp_group`), guides.
+2. (done) Seed file: `src/lib/db/seed-data.ts` + `seed.ts`, run with `npm run db:seed` on the live database once. Placeholders marked (confirm). Department list: requirements section 18 has 8, the prototype has 10 and calls one "Policy and Research" (section 18: "Research and Advocacy"): Devatop to confirm.
 3. Application flow on the database (consents, guardian link, OTP).
 4. Admin review, volunteer dashboard, opportunities and sign-ups, QR check-in, hours, certificates (PDF with QR), real emails (Brevo/Resend), reminder cron.
 5. Replace `src/lib/store.ts` (localStorage) page by page; delete it when nothing imports it.
@@ -43,6 +43,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - `npm run lint`: type-check (`tsc --noEmit`)
 - `npm run db:migrate`: apply migrations to the database in `.env.local`
 - `npm run db:check`: verify the connection and that the schema is installed
+- `npm run db:seed`: fill a NEW database with starting programmes, departments, settings, trainings, email templates and guides (runs once; re-running does nothing)
 - `npm run db:generate`: create a migration from schema changes; `npm run db:permissions` regenerates the permissions seed
 - `npm run photos`: compress photos from `raw-photos/` into `public/photos/`
 

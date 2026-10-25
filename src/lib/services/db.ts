@@ -29,6 +29,11 @@ const FRIENDLY: Record<string, string> = {
   hours_approval_needs_admin: "Only an admin can approve hours.",
   not_found: "We could not find that.",
   own_hours: "You cannot decide your own hours.",
+  department_has_active_members: "This department still has active members. Merge it into another department, or move them first.",
+  department_has_history: "This department has history (members, calls or guides), so it cannot be deleted. Archive or merge it instead.",
+  duplicate_name: "A department with that name already exists.",
+  no_approved_hours: "This volunteer has no approved hours yet.",
+  certificate_needs_approved_hours: "Certificates can only be issued for approved hours.",
 };
 export const friendly = (code: string) => FRIENDLY[code] ?? "Something went wrong. Please try again.";
 
@@ -48,6 +53,9 @@ const RULES: [RegExp, string][] = [
   [/signup_closed/, "signup_closed"],
   [/invalid_qr/, "invalid_qr"], [/outside_event_window/, "outside_event_window"], [/not_checked_in/, "not_checked_in"], [/already_checked_out/, "already_checked_out"],
   [/you cannot decide your own hours/, "own_hours"],
+  [/certificate_needs_approved_hours/, "certificate_needs_approved_hours"],
+  [/department_has_active_members/, "department_has_active_members"], [/department_has_history/, "department_has_history"],
+  [/departments_name_key|duplicate key value violates unique constraint "departments/, "duplicate_name"],
   [/only_active_volunteers/, "only_active_volunteers"],
   [/permission denied|not allowed|42501|only a reviewer|only an admin|row-level security/i, "forbidden"],
 ];

@@ -17,7 +17,8 @@ export async function loadSettings(db: Db): Promise<Settings> {
   };
 }
 
-export type NotifyOptions = { template: TemplateId; to: string; toName?: string; vars?: Vars; userId?: string | null; siteUrl: string; send?: Sender };
+export type NotifyOptions = { template: TemplateId; to: string; toName?: string; vars?: Vars; userId?: string | null; siteUrl: string; send?: Sender;
+  /** What to write in email_log.template instead of the template id, e.g. "reminder:<call id>", so a daily job never sends the same reminder twice. */ logAs?: string };
 
 /**
  * Sends one of the seven automated emails, using the wording an admin may have edited (table email_templates).
@@ -43,6 +44,6 @@ export async function sendTemplateEmail(db: Db, o: NotifyOptions): Promise<"sent
     const r = await (o.send ?? sendViaBrevo)({ from: { name: settings.senderName, email: settings.senderEmail }, to: { email: o.to, name: o.toName }, subject: mail.subject, html: mail.html, text: mail.body });
     status = r.skipped ? "skipped" : r.ok ? "sent" : "failed";
   } catch { status = "failed"; }
-  try { await db.insert(emailLog).values({ userId: o.userId ?? null, template: o.template, status }); } catch { /* logging must never break the request */ }
+  try { await db.insert(emailLog).values({ userId: o.userId ?? null, template: o.logAs ?? o.template, status }); } catch { /* logging must never break the request */ }
   return status;
 }

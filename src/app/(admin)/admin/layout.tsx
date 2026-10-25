@@ -11,6 +11,6 @@ import { requireAdmin } from "@/lib/auth/session";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await connection(); // always render per request, so AUTH_ENABLED is read when the page is opened, not frozen at build time
   const real = authEnabled();
-  if (real) await requireAdmin("overview");
-  return <AdminShell realAuth={real}>{children}</AdminShell>;
+  const session = real ? await requireAdmin("overview") : null;
+  return <AdminShell realAuth={real} realAdmin={session?.admin ?? null}>{children}</AdminShell>;
 }

@@ -3,28 +3,24 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CallRow } from "@/components/CallRow";
 import { PROGRAMMES, SKILLS, STATE_NAMES, type Opportunity } from "@/lib/data";
-import { KEYS, useLocal } from "@/lib/store";
-import { useOpps } from "@/lib/useOpps";
-
-const EMPTY: string[] = [];
+import { useOpps, useSignups } from "@/lib/useOpps";
 
 export default function Opportunities() {
   const [state, setState] = useState("");
   const [prog, setProg] = useState("");
   const [skill, setSkill] = useState("");
   const [mode, setMode] = useState<"" | "Physical" | "Remote">("");
-  const [signups, setSignups] = useLocal<string[]>(KEYS.signups, EMPTY);
+  const { ids: signups, signUp: doSignUp, real } = useSignups();
   const [toast, setToast] = useState("");
   const { opps } = useOpps();
 
-  const list = useMemo(() => opps.map((o) => ({ ...o, taken: o.taken + (signups.includes(o.id) ? 1 : 0) })).filter((o) =>
+  const list = useMemo(() => opps.map((o) => ({ ...o, taken: real ? o.taken : o.taken + (signups.includes(o.id) ? 1 : 0) })).filter((o) =>
     (!state || o.state === state) && (!prog || o.programme === prog) && (!skill || o.skills.includes(skill)) && (!mode || o.mode === mode)
   ), [opps, signups, state, prog, skill, mode]);
 
-  const signUp = (o: Opportunity) => {
-    setSignups((p) => (p.includes(o.id) ? p : [...p, o.id]));
-    const full = o.slots - o.taken <= 0;
-    setToast(full ? `You're on the waitlist for “${o.title}”.` : `Signed up for “${o.title}”. Check your dashboard.`);
+  const signUp = async (o: Opportunity) => {
+    const r = await doSignUp(o);
+    setToast(r.message);
     setTimeout(() => setToast(""), 3500);
   };
 
@@ -61,7 +57,7 @@ export default function Opportunities() {
             <button className="btn mt-5" onClick={() => { setState(""); setProg(""); setSkill(""); setMode(""); }}>Clear filters</button>
           </div>
         )}
-        <p className="text-sm opacity-70 mt-6">Sign-ups here are saved in this browser only, as a prototype. Log in to see them on your dashboard.</p>
+        {!real && <p className="text-sm opacity-70 mt-6">Sign-ups here are saved in this browser only, as a prototype. Log in to see them on your dashboard.</p>}
       </section>
       {toast && <div role="status" className="fixed z-[80] left-1/2 -translate-x-1/2 bottom-24 md:bottom-8 bg-ink text-paper px-5 py-3 font-bold">{toast}</div>}
     </div>

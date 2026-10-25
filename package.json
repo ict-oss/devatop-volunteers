@@ -13,10 +13,12 @@
     "test": "vitest run",
     "test:db": "vitest run tests/db",
     "db:migrate": "node --env-file=.env.local ./node_modules/drizzle-kit/bin.cjs migrate",
-    "db:check": "node --env-file=.env.local tools/db-check.mjs"
+    "db:check": "node --env-file=.env.local tools/db-check.mjs",
+    "db:seed": "node --env-file=.env.local --import tsx tools/seed.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
+    "@react-pdf/renderer": "^4.9.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
     "@tailwindcss/postcss": "^4.3.3",
@@ -40,6 +42,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.11",
+    "@electric-sql/pglite-socket": "^0.2.14",
     "@types/qrcode": "^1.5.6",
     "drizzle-kit": "^0.31.11",
     "sharp": "^0.35.5",

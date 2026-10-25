@@ -97,7 +97,6 @@ export function SiteFooter() {
           <Link href="/faqs" className="hover:underline">FAQs</Link>
           <Link href="/contact" className="hover:underline">Contact</Link>
           <Link href="/privacy" className="hover:underline">Privacy &amp; cookies</Link>
-          <Link href="/image-slots" className="hover:underline opacity-70">Image guide (prototype)</Link>
         </div>
       </div>
       <div className="border-t border-paper/20">

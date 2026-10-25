@@ -22,7 +22,13 @@ const FRIENDLY: Record<string, string> = {
   signup_closed: "Sign-ups for this call have closed.",
   only_active_volunteers: "Only approved volunteers can do this.",
   forbidden: "You are not allowed to do that.",
+  invalid_qr: "That QR code is not valid. Ask the coordinator to show it again.",
+  outside_event_window: "Check-in is only open around the time of the event.",
+  not_checked_in: "You have not checked in yet.",
+  already_checked_out: "You have already checked out.",
+  hours_approval_needs_admin: "Only an admin can approve hours.",
   not_found: "We could not find that.",
+  own_hours: "You cannot decide your own hours.",
 };
 export const friendly = (code: string) => FRIENDLY[code] ?? "Something went wrong. Please try again.";
 
@@ -40,8 +46,10 @@ const RULES: [RegExp, string][] = [
   [/date of birth can only be corrected/, "dob_locked"],
   [/application can no longer be edited/, "application_closed"],
   [/signup_closed/, "signup_closed"],
+  [/invalid_qr/, "invalid_qr"], [/outside_event_window/, "outside_event_window"], [/not_checked_in/, "not_checked_in"], [/already_checked_out/, "already_checked_out"],
+  [/you cannot decide your own hours/, "own_hours"],
   [/only_active_volunteers/, "only_active_volunteers"],
-  [/permission denied|not allowed|42501|only a reviewer|only an admin/i, "forbidden"],
+  [/permission denied|not allowed|42501|only a reviewer|only an admin|row-level security/i, "forbidden"],
 ];
 /** Turn a database rule violation into an AppError; anything unexpected is re-thrown untouched (and never shown to the person). */
 export function asAppError(e: unknown): unknown {

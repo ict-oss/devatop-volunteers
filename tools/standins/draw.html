@@ -1,0 +1,132 @@
+<!doctype html>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders:wght@900&family=Fraunces:ital,wght@1,600&display=swap" rel="stylesheet">
+<canvas id="c"></canvas>
+<script>
+// Stand-in artwork for the image slots: abstract and typographic, NO people (CLAUDE.md rule 9).
+// Real photos replace these from Admin > Site images. Driven by tools/standins/make.mjs.
+const INK = "#16130F", PAPER = "#F2EDE3", ORANGE = "#F05023";
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const TAU = Math.PI * 2;
+
+function halftone(g, x0, y0, w, h, step, fn, color) {
+  g.fillStyle = color;
+  for (let y = y0 + step / 2; y < y0 + h; y += step) for (let x = x0 + step / 2; x < x0 + w; x += step) {
+    const d = Math.max(0, Math.min(1, fn(x, y))); if (d <= 0.02) continue;
+    g.beginPath(); g.arc(x, y, (step / 2) * Math.sqrt(d) * 1.05, 0, TAU); g.fill();
+  }
+}
+function tally(g, x, y, n, h, lw, color) { // groups of five: four strokes and a slash
+  g.strokeStyle = color; g.lineWidth = lw; g.lineCap = "butt";
+  const gap = lw * 2.4; let cx = x;
+  for (let i = 0; i < n; i++) {
+    const k = i % 5;
+    if (k < 4) { g.beginPath(); g.moveTo(cx + k * gap, y); g.lineTo(cx + k * gap, y + h); g.stroke(); }
+    else { g.beginPath(); g.moveTo(cx - gap * 0.4, y + h * 0.82); g.lineTo(cx + gap * 3.4, y + h * 0.18); g.stroke(); cx += gap * 5.4; }
+  }
+}
+const rect = (g, c, x, y, w, h) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+const bigText = (g, t, x, y, px, color, font = "Big Shoulders", style = "900") => { g.fillStyle = color; g.font = `${style} ${px}px "${font}"`; g.textBaseline = "alphabetic"; g.fillText(t, x, y); };
+
+const ART = {
+  "hero-1"(g, W, H) { // 3:2
+    rect(g, INK, 0, 0, W, H);
+    halftone(g, 0, 0, W, H, 22, (x, y) => Math.max(0.24, 1.15 - Math.hypot(x - W * 0.5, y - H * 0.46) / (H * 0.75)), PAPER);
+  },
+  "hero-2"(g, W, H) {
+    rect(g, PAPER, 0, 0, W, H);
+    let x = -H; while (x < W + H) { const w = 20 + rnd() * 90; g.fillStyle = INK; g.beginPath(); g.moveTo(x, H); g.lineTo(x + w, H); g.lineTo(x + w + H * 0.7, 0); g.lineTo(x + H * 0.7, 0); g.fill(); x += w + 24 + rnd() * 80; }
+    halftone(g, 0, 0, W, H, 26, (x, y) => (y / H - 0.3) * 1.6, PAPER);
+  },
+  "hero-3"(g, W, H) { // rows of placards on sticks, receding
+    rect(g, "#d9d2c3", 0, 0, W, H); rect(g, INK, 0, H * 0.78, W, H * 0.22);
+    for (let r = 0; r < 6; r++) {
+      const s = 0.45 + r * 0.17, y = H * (0.3 + r * 0.1), pw = 150 * s, ph = 110 * s, step = pw * 1.35;
+      for (let x = -((r * 37) % step); x < W + step; x += step) {
+        const xo = x + (r % 2) * step * 0.5;
+        rect(g, INK, xo + pw / 2 - 3 * s, y + ph, 6 * s, 150 * s);
+        rect(g, r % 2 ? PAPER : INK, xo, y, pw, ph); g.strokeStyle = INK; g.lineWidth = 5 * s; g.strokeRect(xo, y, pw, ph);
+        tally(g, xo + pw * 0.2, y + ph * 0.22, 5, ph * 0.56, 5 * s, r % 2 ? INK : PAPER);
+      }
+    }
+  },
+  "hero-feature"(g, W, H) { // 4:5, shown as an orange duotone
+    rect(g, PAPER, 0, 0, W, H);
+    halftone(g, 0, 0, W, H, 24, (x, y) => 0.9 - (y / H) * 0.9, INK);
+    bigText(g, "YOU", W * 0.07, H * 0.5, W * 0.62, PAPER, "Big Shoulders");
+    bigText(g, "?", W * 0.63, H * 0.93, W * 0.62, INK);
+    tally(g, W * 0.08, H * 0.58, 15, H * 0.08, 10, INK);
+  },
+  "map-fill"(g, W, H) {
+    rect(g, INK, 0, 0, W, H);
+    for (let r = 0; r < 14; r++) for (let c = 0; c < 8; c++) tally(g, c * W / 7 + (r % 2) * 40 - 20, r * H / 13, 5 + ((r * 3 + c * 5) % 10), H / 15, 9, (r + c) % 3 ? PAPER : "#8c8578");
+  },
+  "call-1"(g, W, H) { // 4:3 sound arcs
+    rect(g, PAPER, 0, 0, W, H);
+    for (let i = 1; i < 14; i++) { g.strokeStyle = INK; g.lineWidth = 8 + i * 1.6; g.beginPath(); g.arc(W * 0.12, H * 0.9, i * H * 0.075, -Math.PI * 0.46, -0.02); g.stroke(); }
+    halftone(g, 0, 0, W, H, 26, (x, y) => (x / W) * 0.9 - 0.1, PAPER);
+    tally(g, W * 0.62, H * 0.1, 10, H * 0.14, 10, INK);
+  },
+  "story-1"(g, W, H) { quote(g, W, H, INK, PAPER, 0.4); },
+  "story-2"(g, W, H) { quote(g, W, H, "#3b352c", PAPER, 0.7); },
+  "story-3"(g, W, H) { quote(g, W, H, PAPER, INK, 0.55); },
+  "about-1"(g, W, H) { // 16:9 rising bars
+    rect(g, PAPER, 0, 0, W, H);
+    const n = 22, bw = W / n;
+    for (let i = 0; i < n; i++) { const h = H * (0.18 + 0.7 * (i / n) ** 1.4 * (0.75 + rnd() * 0.25)); rect(g, INK, i * bw + 6, H - h, bw - 12, h); halftone(g, i * bw + 6, H - h, bw - 12, h, 18, (x, y) => 1 - (y - (H - h)) / h * 1.2, PAPER); }
+    tally(g, W * 0.04, H * 0.1, 25, H * 0.14, 9, INK);
+  },
+  "about-2"(g, W, H) { // dot grid, a few lit
+    rect(g, INK, 0, 0, W, H);
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 12; c++) { g.fillStyle = rnd() > 0.78 ? PAPER : "#4a443b"; g.beginPath(); g.arc(W * (0.06 + c * 0.079), H * (0.1 + r * 0.098), W * 0.026, 0, TAU); g.fill(); }
+  },
+  "apply-side"(g, W, H) { // 4:5 arrow
+    rect(g, PAPER, 0, 0, W, H);
+    g.fillStyle = INK; g.beginPath(); g.moveTo(W * 0.15, H * 0.82); g.lineTo(W * 0.62, H * 0.35); g.lineTo(W * 0.46, H * 0.35); g.lineTo(W * 0.46, H * 0.22); g.lineTo(W * 0.85, H * 0.22); g.lineTo(W * 0.85, H * 0.6); g.lineTo(W * 0.72, H * 0.6); g.lineTo(W * 0.72, H * 0.44); g.lineTo(W * 0.25, H * 0.91); g.closePath(); g.fill();
+    halftone(g, 0, H * 0.55, W, H * 0.45, 22, (x, y) => (y - H * 0.55) / (H * 0.45) * 0.9, INK);
+    tally(g, W * 0.1, H * 0.06, 10, H * 0.08, 9, INK);
+  },
+  "profile-me"(g, W, H) { rect(g, PAPER, 0, 0, W, H); for (let i = 8; i > 0; i--) { g.fillStyle = i % 2 ? INK : PAPER; g.beginPath(); g.arc(W / 2, H / 2, i * W * 0.058, 0, TAU); g.fill(); } },
+};
+function quote(g, W, H, bg, fg, density) {
+  rect(g, bg, 0, 0, W, H);
+  halftone(g, 0, 0, W, H, 24, (x, y) => (1 - y / H) * density * 2, fg === PAPER ? "#6d6457" : "#c9c1b1");
+  bigText(g, "“", W * 0.06, H * 0.78, W * 1.15, fg, "Fraunces", "italic 600");
+}
+
+// ---- looping clips: a pure function of time t in [0,1), so the loop is seamless ----
+const LOOPS = {
+  "loop-tally"(g, W, H, t) { // orange field, tally marks drawn one by one
+    rect(g, ORANGE, 0, 0, W, H);
+    const total = 60, rows = 3, per = total / rows, lw = H * 0.017, gap = lw * 2.4;
+    const shown = (t < 0.8 ? t / 0.8 : 1) * total, fade = t > 0.9 ? 1 - (t - 0.9) / 0.1 : 1;
+    g.globalAlpha = fade;
+    for (let i = 0; i < Math.floor(shown); i++) {
+      const row = Math.floor(i / per), k = i % per, grp = Math.floor(k / 5), j = k % 5;
+      const gx = W * 0.07 + grp * (gap * 5.6) , y = H * (0.14 + row * 0.27), h = H * 0.2;
+      g.strokeStyle = INK; g.lineWidth = lw;
+      g.beginPath();
+      if (j < 4) { g.moveTo(gx + j * gap, y); g.lineTo(gx + j * gap, y + h); } else { g.moveTo(gx - gap * 0.4, y + h * 0.82); g.lineTo(gx + gap * 3.4, y + h * 0.18); }
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+    bigText(g, "SHOW UP.", W * 0.5, H * 0.96, H * 0.2, INK);
+  },
+  "loop-ticker"(g, W, H, t) { // ink band, scrolling words
+    rect(g, INK, 0, 0, W, H);
+    const words = ["SHOW UP", "SPEAK UP", "STEP UP", "TALKAM", "AI4RIGHTS", "ACTION"]; const px = H * 0.52; g.font = `900 ${px}px "Big Shoulders"`;
+    const unit = words.reduce((s, w) => s + g.measureText(w + "   •   ").width, 0);
+    for (let row = 0; row < 2; row++) {
+      let x = -((t * unit) % unit) * (row ? -1 : 1) - (row ? unit : 0); const y = H * (0.45 + row * 0.5);
+      while (x < W + unit) { for (const w of words) { const txt = w + "   •   "; g.fillStyle = row ? ORANGE : PAPER; g.fillText(txt, x, y); x += g.measureText(txt).width; } if (x > W + unit) break; }
+    }
+  },
+};
+
+window.render = async (name, W, H, t) => {
+  await document.fonts.load('900 100px "Big Shoulders"'); await document.fonts.load('italic 600 100px "Fraunces"'); await document.fonts.ready;
+  const c = document.getElementById("c"); c.width = W; c.height = H; const g = c.getContext("2d"); seed = 7;
+  (ART[name] || LOOPS[name])(g, W, H, t); return true;
+};
+window.names = () => Object.keys(ART);
+</script>

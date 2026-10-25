@@ -34,4 +34,37 @@ export const SLOTS: Record<string, Slot> = {
   "profile-me": { id: "profile-me", ratio: "1/1", where: "Volunteer dashboard — their own photo inside 'YOU'RE IN'", brief: "Uploaded by the volunteer. Square crop." },
 };
 
-export const photoSrc = (id: string) => `/photos/${id}.webp`;
+/* ---------- admin changes ----------
+ * Admin > Site images lets an admin replace any slot. Prototype: the new image is compressed in the browser and kept in
+ * this browser's storage (so only that browser sees it). At cutover the same page uploads to Supabase Storage instead,
+ * and every visitor sees it. `photoSrc` already prefers a replacement, so no page needs to change.
+ */
+const OVERRIDE_KEY = "dv_photo_overrides_v1";
+export const PHOTOS_CHANGED = "dv-photos-changed";
+let overrides: Record<string, string> | null = null;
+const readOverrides = () => {
+  if (overrides) return overrides;
+  try { overrides = JSON.parse(localStorage.getItem(OVERRIDE_KEY) || "{}"); } catch { overrides = {}; }
+  return overrides!;
+};
+export const photoOverride = (id: string): string | null => (typeof window === "undefined" ? null : readOverrides()[id] ?? null);
+/** Pass null to go back to the default image. Throws if the browser's storage is full. */
+export function setPhotoOverride(id: string, dataUrl: string | null) {
+  const next = { ...readOverrides() };
+  if (dataUrl) next[id] = dataUrl; else delete next[id];
+  localStorage.setItem(OVERRIDE_KEY, JSON.stringify(next)); // may throw (quota): the caller shows a message
+  overrides = next;
+  window.dispatchEvent(new Event(PHOTOS_CHANGED));
+}
+export const photoSrc = (id: string) => photoOverride(id) ?? `/photos/${id}.webp`;
+
+/* ---------- short looping clips ----------
+ * Silent, about 6 seconds, under 300 KB, with a still poster. They play only on a fast connection (see LoopVideo).
+ * Files live in /public/video as <id>.mp4, <id>.webm and <id>.jpg. Replacing them from the admin needs Storage (later).
+ */
+export type VideoSlot = { id: string; ratio: string; where: string; brief: string };
+export const VIDEOS: Record<string, VideoSlot> = {
+  "loop-tally": { id: "loop-tally", ratio: "7/3", where: "Home page: the tally band under the hero", brief: "Silent loop, 6 seconds or less, under 300 KB. Tally marks being counted." },
+  "loop-ticker": { id: "loop-ticker", ratio: "3/1", where: "About page: the moving words under the title", brief: "Silent loop, 6 seconds or less, under 300 KB. Scrolling words." },
+};
+export const videoSrc = (id: string) => ({ mp4: `/video/${id}.mp4`, webm: `/video/${id}.webm`, poster: `/video/${id}.jpg` });

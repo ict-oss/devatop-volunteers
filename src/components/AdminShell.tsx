@@ -20,6 +20,7 @@ const NAV: { label: string; href: string; need: Action }[] = [
   { label: "Messages", href: "/admin/messages", need: "email.bulk" },
   { label: "Chat", href: "/admin/chat", need: "overview" },
   { label: "Departments", href: "/admin/departments", need: "departments.assign" },
+  { label: "Site images", href: "/admin/images", need: "settings.edit" },
   { label: "Audit log", href: "/admin/audit", need: "audit.see" },
 ];
 

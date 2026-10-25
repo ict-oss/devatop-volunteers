@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { DEMO_ADMINS, ROLE_LABEL, type Action } from "@/lib/permissions";
-import { useAdmin } from "@/lib/useAdmin";
+import { DEMO_ADMINS, ROLE_LABEL, type Action, type Admin } from "@/lib/permissions";
+import { RealAdminContext, useAdmin } from "@/lib/useAdmin";
 import { resetDemo } from "@/lib/store";
 import { supabaseBrowser } from "@/lib/auth/supabase-browser";
 import { ADMIN_IDLE_MS } from "@/lib/auth/routing";
@@ -25,7 +25,11 @@ const NAV: { label: string; href: string; need: Action }[] = [
 ];
 
 /** `realAuth` is true once AUTH_ENABLED: idle and sign-out then end the real session. Until then the role switcher still drives the prototype. */
-export function AdminShell({ children, realAuth = false }: { children: React.ReactNode; realAuth?: boolean }) {
+export function AdminShell({ children, realAuth = false, realAdmin = null }: { children: React.ReactNode; realAuth?: boolean; realAdmin?: Admin | null }) {
+  return <RealAdminContext.Provider value={realAdmin}><ShellInner realAuth={realAuth}>{children}</ShellInner></RealAdminContext.Provider>;
+}
+
+function ShellInner({ children, realAuth }: { children: React.ReactNode; realAuth: boolean }) {
   const path = usePathname();
   const router = useRouter();
   const { admin, idx, setIdx, can } = useAdmin();
@@ -49,13 +53,13 @@ export function AdminShell({ children, realAuth = false }: { children: React.Rea
     <div className="min-h-screen bg-paper md:grid md:grid-cols-[15rem_1fr]">
       <aside className="print:hidden bg-ink text-paper md:min-h-screen md:sticky md:top-0 md:h-screen p-4 flex flex-col gap-5">
         <div><Link href="/" className="display text-3xl">Devatop</Link><span className="ml-2 bg-orange text-ink text-xs font-bold px-1.5 py-0.5 uppercase">Admin</span></div>
-        <div>
+        {realAuth ? <p className="text-xs opacity-80">Signed in · two-factor on · session ends after 30 min idle</p> : <div>
           <label htmlFor="role" className="text-xs uppercase tracking-widest font-bold opacity-70">Viewing as (prototype)</label>
           <select id="role" className="mt-1 w-full bg-paper text-ink p-2 font-bold border-2 border-paper min-h-11" value={idx} onChange={(e) => setIdx(Number(e.target.value))}>
             {DEMO_ADMINS.map((a, i) => <option key={i} value={i}>{ROLE_LABEL[a.role]}{a.scope ? ` · ${a.scope}` : ""}</option>)}
           </select>
           <p className="text-xs mt-2 opacity-80">Two-factor sign-in on · session ends after 30 min idle</p>
-        </div>
+        </div>}
         <nav aria-label="Admin" className="flex md:grid gap-1 overflow-x-auto">
           {NAV.filter((n) => can(n.need)).map((n) => {
             const on = n.href === "/admin" ? path === "/admin" : path.startsWith(n.href);
@@ -64,7 +68,7 @@ export function AdminShell({ children, realAuth = false }: { children: React.Rea
         </nav>
         <div className="mt-auto grid gap-2 text-sm">
           {realAuth && <button className="text-left underline opacity-80" onClick={async () => { await supabaseBrowser().auth.signOut(); window.location.assign("/login"); }}>Sign out</button>}
-          <button className="text-left underline opacity-80" onClick={() => { if (confirm("Reset all prototype data in this browser?")) resetDemo(); }}>Reset demo data</button>
+          {!realAuth && <button className="text-left underline opacity-80" onClick={() => { if (confirm("Reset all prototype data in this browser?")) resetDemo(); }}>Reset demo data</button>}
           <Link href="/" className="underline opacity-80">Public site</Link>
         </div>
       </aside>

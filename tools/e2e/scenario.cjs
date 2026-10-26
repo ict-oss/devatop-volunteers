@@ -1,4 +1,4 @@
-// Dev-only end-to-end run against the local harness (tools/e2e/harness.ts) and the app started with AUTH_ENABLED=true.
+// Dev-only end-to-end run against the local harness (tools/e2e/harness.ts) and the app started with the printed variables.
 // node tools/e2e/scenario.cjs   (needs Playwright with Chromium)
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
 const BASE = process.env.E2E_BASE || "http://localhost:3150", AUTH = "http://127.0.0.1:54330";
@@ -181,6 +181,34 @@ async function login(page, email) {
     await amaka.p.goto(BASE + "/admin/images"); await amaka.p.waitForURL(/not-allowed/);
   });
   await step("admin chat shows the rooms and the volunteer's earlier message", async () => { await admin.p.goto(BASE + "/admin/chat"); await admin.p.getByRole("button", { name: /All volunteers/ }).first().click(); await expectText(admin.p, "Hello from Amaka"); });
+
+  console.log("\nUsers: volunteers and admins");
+  await step("the home page shows real numbers and no invented testimonials", async () => {
+    await visitor.p.goto(BASE + "/"); await expectText(visitor.p, "hours given");
+    const t = await visitor.p.locator("main, body").first().innerText(); if (/placeholder|\(example\)|illustrative/i.test(t)) throw new Error("sample text is still on the home page");
+  });
+  await step("admin suspends a volunteer and reactivates them", async () => {
+    await admin.p.goto(BASE + "/admin/volunteers"); const row = admin.p.locator("tr", { hasText: "Amaka Obi" }).first(); await row.getByRole("button", { name: "Suspend" }).click(); await expectText(admin.p, "Suspended.");
+    await admin.p.locator("tr", { hasText: "Amaka Obi" }).first().getByText("Suspended").first().waitFor();
+    await admin.p.locator("tr", { hasText: "Amaka Obi" }).first().getByRole("button", { name: "Reactivate" }).click(); await expectText(admin.p, "Active again.");
+  });
+  const newbie = await mk();
+  await step("someone who has not signed in yet cannot be made an admin; after signing in once they can", async () => {
+    await admin.p.goto(BASE + "/admin/admins"); await admin.p.fill('input[type=email]', "newadmin@example.com"); await admin.p.getByRole("button", { name: "Add admin" }).click(); await expectText(admin.p, "has not signed in yet");
+    await login(newbie.p, "newadmin@example.com");
+    await admin.p.goto(BASE + "/admin/admins"); await admin.p.fill('input[type=email]', "newadmin@example.com"); await admin.p.getByRole("button", { name: "Add admin" }).click(); await expectText(admin.p, "is now an admin");
+    await admin.p.locator("tr", { hasText: "newadmin@example.com" }).first().waitFor();
+  });
+  await step("the new admin is held at two-factor; their role can be changed and then removed", async () => {
+    await newbie.p.goto(BASE + "/admin"); await newbie.p.waitForURL(/two-factor/);
+    await admin.p.locator("tr", { hasText: "newadmin@example.com" }).first().getByRole("button", { name: "Change role" }).click();
+    await admin.p.locator("tr", { hasText: "newadmin@example.com" }).first().getByRole("button", { name: "Save" }).click(); await expectText(admin.p, "Role changed");
+    await admin.p.locator("tr", { hasText: "newadmin@example.com" }).first().getByRole("button", { name: "Remove" }).click(); await expectText(admin.p, "Admin access removed");
+  });
+  await step("an admin cannot change their own role, and a volunteer cannot open the Admins page", async () => {
+    await admin.p.goto(BASE + "/admin/admins"); await expectText(admin.p, "Ask another Super Admin to change your role");
+    await tobi.p.goto(BASE + "/admin/admins"); await tobi.p.waitForURL(/not-allowed/);
+  });
 
   console.log("\nCron and account deletion");
   await step("the reminder cron refuses a wrong secret and runs with the right one", async () => {

@@ -2,16 +2,15 @@
 import { createContext, useContext } from "react";
 import type { Opportunity } from "./data";
 import type { Announcement } from "./useComms";
-import type { Application, HourLog } from "./store";
+import type { Application, HourLog } from "./types";
 import type { CertificateView } from "./services/certificates";
 import type { StartItem } from "./services/portal";
 import type { GuideView } from "./services/profile";
 import { setReplacedImages, type ReplacedImage } from "./images";
 
 /**
- * Real data for the public and volunteer screens, read on the server and handed down once AUTH_ENABLED=true.
- * The hooks (useMe, useOpps, useSignups, useComms) return this instead of the browser-storage prototype data,
- * so the screens built on the prototype keep working unchanged. `null` means prototype mode.
+ * Real data for the public and volunteer screens, read on the server and handed down to the screens.
+ * The hooks (useMe, useOpps, useSignups, useComms) return this to the screens.
  */
 export type LiveData = {
   signedIn: boolean;

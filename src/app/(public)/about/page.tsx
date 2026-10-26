@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { Photo } from "@/components/Photo";
 import { LoopVideo } from "@/components/LoopVideo";
-import { DEPARTMENTS } from "@/lib/data";
+import { asVisitor } from "@/lib/server/caller";
+import { activeDepartments } from "@/lib/services/public";
 
 export const metadata = { title: "About" };
+export const dynamic = "force-dynamic";
 
-export default function About() {
+export default async function About() {
+  const departments = await asVisitor((tx) => activeDepartments(tx));
   return (
     <div>
       <section className="mx-auto max-w-[1500px] px-4 md:px-8 pt-12 md:pt-20">
@@ -19,7 +22,6 @@ export default function About() {
         <div className="md:col-span-7 grid gap-5 text-[length:var(--text-lead)]">
           <p>Devatop Centre for Africa Development is a youth-led organisation working against human trafficking, gender-based violence and other abuses across Nigeria.</p>
           <p>Our volunteers run AI4Rights sessions in schools, support reporting through Talkam, walk in awareness campaigns and tell the stories that make people act. <b>Volunteers are known by action, not by registration.</b></p>
-          <p className="text-sm opacity-70">Draft copy. Devatop to confirm its story, dates and focus areas before launch (editable in the admin section).</p>
         </div>
       </section>
 
@@ -27,7 +29,7 @@ export default function About() {
         <div className="mx-auto max-w-[1500px] px-4 md:px-8 py-16 grid md:grid-cols-12 gap-10">
           <h2 className="md:col-span-4 text-[length:var(--text-title)]">How volunteering works</h2>
           <ol className="md:col-span-8">
-            {["Apply in three short steps. Under 18? A parent or guardian confirms through their own email or phone.", "Sign the code of conduct and safeguarding agreement. Nobody works with children or survivors before this.", "Finish orientation, join the WhatsApp group, and pick your first call to action.", "Check in with a QR scan, or log remote hours. An admin approves them.", "Only approved hours count. They build your record, your milestones and your certificate."].map((t, i) => (
+            {["Apply in three short steps. Under 18? A parent or guardian confirms through their own email or by a link you pass on.", "Sign the code of conduct and safeguarding agreement. Nobody works with children or survivors before this.", "Finish orientation, join the WhatsApp group, and pick your first call to action.", "Check in with a QR scan, or log remote hours. An admin approves them.", "Only approved hours count. They build your record, your milestones and your certificate."].map((t, i) => (
               <li key={i} className="border-t border-rule py-4 flex gap-5"><span className="display text-5xl text-orange w-12 shrink-0">{i + 1}</span><span className="text-[length:var(--text-lead)]">{t}</span></li>
             ))}
           </ol>
@@ -38,8 +40,8 @@ export default function About() {
         <div className="mx-auto max-w-[1500px] px-4 md:px-8 py-16 grid md:grid-cols-12 gap-10">
           <div className="md:col-span-4"><h2 className="text-[length:var(--text-title)]">Departments</h2><div className="mt-6"><Photo slot="about-2" className="w-full" alt="Training session" /></div></div>
           <ul className="md:col-span-8 grid sm:grid-cols-2 gap-x-8 content-start">
-            {DEPARTMENTS.filter((d) => d.status === "active").map((d) => (
-              <li key={d.id} className="border-t border-rule py-4"><div className="display text-3xl">{d.name}</div><p className="text-sm mt-1">{d.blurb}</p></li>
+            {departments.map((d) => (
+              <li key={d.id} className="border-t border-rule py-4"><div className="display text-3xl">{d.name}</div><p className="text-sm mt-1">{d.description}</p></li>
             ))}
           </ul>
         </div>

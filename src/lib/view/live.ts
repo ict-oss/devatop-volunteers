@@ -1,4 +1,4 @@
-import type { Application, HourLog, Stage } from "../store";
+import type { Application, HourLog, Stage } from "../types";
 import type { HourView } from "../services/hours";
 import type { MyApplicationRow } from "../services/portal";
 

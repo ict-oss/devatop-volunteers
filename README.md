@@ -2,7 +2,7 @@
 
 Volunteer platform for Devatop Centre for Africa Development (volunteer.devatop.org): a public site, a volunteer portal and an admin section in one Next.js app. Source of truth for features: the *Devatop Volunteers Platform: Feature Requirements* document.
 
-> **Status:** built and tested end to end. With `AUTH_ENABLED` unset the site is the clickable prototype (sample data in the browser, no login), which is what reviewers on the Vercel link see. With `AUTH_ENABLED=true` it is the real system on the database: sign-in by emailed code, two-factor for admins, applications, review, sign-ups, hours, QR check-in, certificates, chat, messages, reports. See `CLAUDE.md` (go-live checklist) and `docs/developer/`.
+> **Status:** the real system: sign-in by emailed code, two-factor for admins, applications, review, calls, hours, QR check-in, certificates, messages and an Admin section, all on the database. There is no sample data and no prototype mode; the site needs its Supabase settings (see `docs/developer/deploy.md`).
 
 ## Run it locally (about 5 minutes)
 
@@ -13,17 +13,17 @@ npm test             # database rules, services and sign-in rules (local Postgre
 npm run lint         # type-check
 ```
 
-Admin area: open `/admin` and use **Viewing as** (bottom of the sidebar) to switch roles. **Reset demo data** clears the browser sample data.
+The site needs the variables in `.env.example` (a Supabase project). For a run with no accounts at all, see the local end-to-end run in `CLAUDE.md`.
 
 ## Put it online (for review)
 
-The prototype needs no database or secrets, so it deploys as it is.
+Set the variables in `docs/developer/deploy.md` in Vercel before the first deploy.
 
 1. Create a GitHub **organisation or account owned by an official Devatop email** (never a staff member's personal account) and push this folder to a new repository.
 2. Create a Vercel account with the same Devatop email, choose **Add New > Project**, import the repository and press **Deploy**. Framework (Next.js) and build settings are detected automatically.
 3. Every push to `main` redeploys. Use the generated `*.vercel.app` address to review; point `volunteer.devatop.org` at it later.
 
-**Until `AUTH_ENABLED=true`, anyone with the link can open `/admin`** (the prototype has no login). Share the address only with reviewers, or turn on Vercel's password protection. To go live, follow the checklist in `CLAUDE.md` and `docs/developer/deploy.md`.
+To go live, follow the checklist in `CLAUDE.md` and `docs/developer/deploy.md`.
 
 ## Images
 

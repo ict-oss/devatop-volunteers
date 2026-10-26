@@ -16,6 +16,8 @@ import type { TemplateId } from "@/lib/emails";
 import { removeSiteImage, saveSchema as siteSaveSchema, saveSiteImage } from "@/lib/services/siteImages";
 import { fileSize, removeFiles, uploadTokens } from "@/lib/server/storage";
 import { slotKind } from "@/lib/siteImages";
+import { addAdmin, adminInput, changeAdmin, removeAdmin, setVolunteerStatus, userIdByEmail } from "@/lib/services/users";
+import { friendly } from "@/lib/services/db";
 
 /** Every admin action: checked on the server for its exact permission (rule 1), then run AS the admin so scope and the database rules apply. */
 async function asAdmin<T>(action: Action, fn: (c: NonNullable<Awaited<ReturnType<typeof adminCaller>>>) => Promise<Result<T>>): Promise<Result<T>> {
@@ -168,5 +170,32 @@ export const saveSiteImageAction = async (raw: unknown) => asAdmin("settings.edi
 export const resetSiteImageAction = async (raw: unknown) => asAdmin("settings.edit", async (me) => {
   const { slotId } = slotInput.parse(raw);
   await removeFiles(await asCaller(me.caller, (tx) => removeSiteImage(tx, slotId)));
+  return ok();
+});
+
+/* ---------------------------------------------------------------- volunteers and admins (the Users section) */
+const statusInput = z.object({ userId: uuid, status: z.enum(["active", "inactive", "suspended", "alumni"]) });
+/** Suspend, reactivate or mark as alumni. The database allows it only for roles with volunteers.suspend, inside their scope. */
+export const setVolunteerStatusAction = async (raw: unknown) => asAdmin("volunteers.suspend", async (me) => {
+  const p = statusInput.parse(raw);
+  await asCaller(me.caller, (tx) => setVolunteerStatus(tx, p.userId, p.status));
+  return ok();
+});
+const addAdminInput = z.object({ email: z.string().trim().toLowerCase().email("Enter a valid email address.").max(200) });
+export const addAdminAction = async (raw: unknown) => asAdmin("admins.manage", async (me) => {
+  const e = addAdminInput.safeParse(raw); if (!e.success) return fieldErrors(e.error);
+  const p = adminInput.safeParse(raw); if (!p.success) return fieldErrors(p.error);
+  const userId = await userIdByEmail(trusted(), e.data.email); // first, on the trusted connection, before the admin's own query starts
+  if (!userId) return fail("not_signed_up", friendly("not_signed_up"));
+  await asCaller(me.caller, (tx) => addAdmin(tx, me.caller.sub, userId, p.data));
+  return ok();
+});
+export const changeAdminAction = async (userId: string, raw: unknown) => asAdmin("admins.manage", async (me) => {
+  const p = adminInput.safeParse(raw); if (!p.success) return fieldErrors(p.error);
+  await asCaller(me.caller, (tx) => changeAdmin(tx, me.caller.sub, uuid.parse(userId), p.data));
+  return ok();
+});
+export const removeAdminAction = async (userId: string) => asAdmin("admins.manage", async (me) => {
+  await asCaller(me.caller, (tx) => removeAdmin(tx, me.caller.sub, uuid.parse(userId)));
   return ok();
 });

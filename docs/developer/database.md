@@ -48,10 +48,9 @@ Backups: daily backups on a paid plan, plus a copy stored away from the main ser
 
 ## Turning sign-in on
 
-Sign-in protection is off until `AUTH_ENABLED=true`. Until then `/admin` and the volunteer pages are open (sample data only). To turn it on: finish the Supabase settings above, make the first two Super Admins, sign in once by hand (email code, then scan the two-factor QR code), then set `AUTH_ENABLED=true` in Vercel and redeploy. Rules live in `src/lib/auth/routing.ts`; tests in `tests/auth/` and `tests/db/auth.test.ts`.
+Sign-in protection is always on. To get in the first time: finish the Supabase settings above, make the first two Super Admins (SQL below), sign in once by hand (email code, then scan the two-factor QR code). Further admins are added from **Admin > Admins** by a Super Admin.
 
 ## Known limits
 
 - Hosting is outside Nigeria (the privacy policy must say so).
-- The prototype pages still use `src/lib/store.ts` (browser storage) until they are moved onto this database one feature at a time.
-- Guardian links expire after 7 days in the database; the prototype does not enforce it.
+- Guardian links expire after 7 days in the database.

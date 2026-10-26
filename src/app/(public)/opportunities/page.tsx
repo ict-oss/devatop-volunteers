@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CallRow } from "@/components/CallRow";
-import { PROGRAMMES, SKILLS, STATE_NAMES, type Opportunity } from "@/lib/data";
+import { SKILLS, STATE_NAMES, type Opportunity } from "@/lib/data";
 import { useOpps, useSignups } from "@/lib/useOpps";
 
 export default function Opportunities() {
@@ -10,13 +10,14 @@ export default function Opportunities() {
   const [prog, setProg] = useState("");
   const [skill, setSkill] = useState("");
   const [mode, setMode] = useState<"" | "Physical" | "Remote">("");
-  const { ids: signups, signUp: doSignUp, real } = useSignups();
+  const { ids: signups, signUp: doSignUp } = useSignups();
   const [toast, setToast] = useState("");
   const { opps } = useOpps();
 
-  const list = useMemo(() => opps.map((o) => ({ ...o, taken: real ? o.taken : o.taken + (signups.includes(o.id) ? 1 : 0) })).filter((o) =>
+  const programmes = useMemo(() => Array.from(new Set(opps.map((o) => o.programme))).sort(), [opps]);
+  const list = useMemo(() => opps.filter((o) =>
     (!state || o.state === state) && (!prog || o.programme === prog) && (!skill || o.skills.includes(skill)) && (!mode || o.mode === mode)
-  ), [opps, signups, state, prog, skill, mode]);
+  ), [opps, state, prog, skill, mode]);
 
   const signUp = async (o: Opportunity) => {
     const r = await doSignUp(o);
@@ -36,7 +37,7 @@ export default function Opportunities() {
           <label className="block"><span className="label">State</span>
             <select className="input" value={state} onChange={(e) => setState(e.target.value)}><option value="">All states</option><option>Remote (any state)</option>{STATE_NAMES.map((s) => <option key={s}>{s}</option>)}</select></label>
           <label className="block"><span className="label">Programme</span>
-            <select className="input" value={prog} onChange={(e) => setProg(e.target.value)}><option value="">All programmes</option>{PROGRAMMES.map((s) => <option key={s}>{s}</option>)}</select></label>
+            <select className="input" value={prog} onChange={(e) => setProg(e.target.value)}><option value="">All programmes</option>{programmes.map((s) => <option key={s}>{s}</option>)}</select></label>
           <label className="block"><span className="label">Skill</span>
             <select className="input" value={skill} onChange={(e) => setSkill(e.target.value)}><option value="">Any skill</option>{SKILLS.map((s) => <option key={s}>{s}</option>)}</select></label>
           <div><span className="label">Where</span>
@@ -53,11 +54,10 @@ export default function Opportunities() {
         {list.length === 0 && (
           <div className="py-16 max-w-xl">
             <p className="display text-5xl">No open calls right now.</p>
-            <p className="mt-3 text-[length:var(--text-lead)]">New ones drop often, so check back, or turn on alerts.</p>
-            <button className="btn mt-5" onClick={() => { setState(""); setProg(""); setSkill(""); setMode(""); }}>Clear filters</button>
+            <p className="mt-3 text-[length:var(--text-lead)]">New ones are added often, so check back soon.</p>
+            {(state || prog || skill || mode) && <button className="btn mt-5" onClick={() => { setState(""); setProg(""); setSkill(""); setMode(""); }}>Clear filters</button>}
           </div>
         )}
-        {!real && <p className="text-sm opacity-70 mt-6">Sign-ups here are saved in this browser only, as a prototype. Log in to see them on your dashboard.</p>}
       </section>
       {toast && <div role="status" className="fixed z-[80] left-1/2 -translate-x-1/2 bottom-24 md:bottom-8 bg-ink text-paper px-5 py-3 font-bold">{toast}</div>}
     </div>

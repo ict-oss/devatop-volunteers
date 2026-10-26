@@ -8,8 +8,8 @@ import { CONSENTS } from "@/lib/consent-texts";
 import { sendCode, verifyCode } from "@/lib/auth/otp";
 import { supabaseBrowser } from "@/lib/auth/supabase-browser";
 import { guardianStatusAction, requestGuardianAction, submitApplicationAction } from "@/app/actions/apply";
-import { EMPTY_GREQ, KEYS, SEED_APPS, ageOf, newId, nowIso, useLocal, type Application, type Consent, type GuardianReq } from "@/lib/store";
-import { useComms } from "@/lib/useComms";
+import { ageOf } from "@/lib/types";
+import { useLocal } from "@/lib/useLocal";
 
 type Draft = {
   step: 1 | 2 | 3; first: string; last: string; phone: string; email: string; state: string; lga: string; dob: string; occupation: string;
@@ -25,44 +25,35 @@ const STEPS = [
 ];
 
 export type ApplyProps = {
-  /** true once AUTH_ENABLED: talks to the real database. false: the clickable prototype (browser storage, demo codes). */
-  real: boolean;
   departments: { id: string; name: string }[];
   minAge: number;
   reviewDays: number;
-  /** real mode: this person already has an application (shown unless they have just submitted it on this page) */
+  /** this person already has an application (shown unless they have just submitted it on this page) */
   already?: boolean;
 };
 
-export function ApplyForm({ real, departments, minAge, reviewDays, already = false }: ApplyProps) {
-  const [d, setD, hasDraft] = useLocal<Draft>(KEYS.draft, EMPTY);
-  const [, setApps] = useLocal<Application[]>(KEYS.apps, SEED_APPS);
+export function ApplyForm({ departments, minAge, reviewDays, already = false }: ApplyProps) {
+  // the unfinished form is kept in this browser only, so a closed tab does not lose it; it is cleared once submitted
+  const [d, setD, hasDraft] = useLocal<Draft>("dv.apply-draft", EMPTY);
   const [err, setErr] = useState<Record<string, string>>({});
   const [otp, setOtp] = useState(""); const [otpSent, setOtpSent] = useState(false);
-  const [gOtp, setGOtp] = useState("");
   const [busy, setBusy] = useState(false);
   const [gRefused, setGRefused] = useState(false);
   const [gLink, setGLink] = useState(""); // set when the site does not email the guardian: the applicant passes the link on
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const { send } = useComms();
-  const [greqs, setGreqs] = useLocal<GuardianReq[]>(KEYS.guardian, EMPTY_GREQ);
-  const greq = d.gToken ? greqs.find((g) => g.token === d.gToken) : undefined;
-  // the guardian opened their emailed link and gave consent -> same as a verified code
-  useEffect(() => { if (greq?.status === "given" && !d.gVerified) setD((p) => ({ ...p, gVerified: true })); }, [greq?.status, d.gVerified, setD]);
 
-  // real mode: if this person already verified their email (signed in), skip the code step
+  // if this person already verified their email (signed in), skip the code step
   useEffect(() => {
-    if (!real) return;
     supabaseBrowser().auth.getUser().then(({ data }) => {
       const email = data.user?.email;
       setD((p) => ({ ...p, verified: !!email, email: email ?? p.email }));
     });
-  }, [real, setD]);
+  }, [setD]);
 
-  // real mode: wait for the guardian to answer their emailed link
+  // wait for the guardian to answer their emailed link
   useEffect(() => {
-    if (!real || !d.gSent || d.gVerified) return;
+    if (!d.gSent || d.gVerified) return;
     const t = setInterval(async () => {
       const r = await guardianStatusAction();
       if (!r.ok) return;
@@ -70,7 +61,7 @@ export function ApplyForm({ real, departments, minAge, reviewDays, already = fal
       else if (r.data.decision === "refused") setGRefused(true);
     }, 5000);
     return () => clearInterval(t);
-  }, [real, d.gSent, d.gVerified, setD]);
+  }, [d.gSent, d.gVerified, setD]);
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((p) => ({ ...p, [k]: v }));
   const toggle = (k: "skills" | "departments" | "languages", v: string) => setD((p) => ({ ...p, [k]: p[k].includes(v) ? p[k].filter((x) => x !== v) : [...p[k], v] }));
@@ -101,22 +92,13 @@ export function ApplyForm({ real, departments, minAge, reviewDays, already = fal
     if (!Object.keys(e).length) { set("step", 3); window.scrollTo({ top: 0 }); }
   };
   const sendOtp = async () => {
-    if (real) {
-      if (!/^\S+@\S+\.\S+$/.test(d.email.trim())) { setErr({ otp: "Enter your email address first." }); return; }
-      setBusy(true);
-      try { await sendCode({ email: d.email.trim() }); setOtpSent(true); setErr({}); } catch (e) { setErr({ otp: (e as Error).message }); } finally { setBusy(false); }
-      return;
-    }
-    if (!d.email && !d.phone) { setErr({ otp: "Enter your phone or email first." }); return; }
-    setOtpSent(true); setErr({});
+    if (!/^\S+@\S+\.\S+$/.test(d.email.trim())) { setErr({ otp: "Enter your email address first." }); return; }
+    setBusy(true);
+    try { await sendCode({ email: d.email.trim() }); setOtpSent(true); setErr({}); } catch (e) { setErr({ otp: (e as Error).message }); } finally { setBusy(false); }
   };
   const checkOtp = async () => {
-    if (real) {
-      setBusy(true);
-      try { await verifyCode({ email: d.email.trim() }, otp.replace(/\s/g, "")); set("verified", true); setErr({}); } catch (e) { setErr({ otp: (e as Error).message }); } finally { setBusy(false); }
-      return;
-    }
-    if (otp === "123456") { set("verified", true); setErr({}); } else setErr({ otp: "That code isn't right. Try again." });
+    setBusy(true);
+    try { await verifyCode({ email: d.email.trim() }, otp.replace(/\s/g, "")); set("verified", true); setErr({}); } catch (e) { setErr({ otp: (e as Error).message }); } finally { setBusy(false); }
   };
   /** What the server receives. The wording of each consent and the email address come from the server, not from here. */
   const payload = () => ({
@@ -130,44 +112,23 @@ export function ApplyForm({ real, departments, minAge, reviewDays, already = fal
     if (minor && !d.gVerified) e.guardian = "A parent or guardian must confirm before you can submit.";
     setErr(e);
     if (Object.keys(e).length) return;
-    if (real) {
-      setBusy(true);
-      const r = await submitApplicationAction(payload());
-      setBusy(false);
-      if (r.ok) { setD((p) => ({ ...p, done: true })); window.scrollTo({ top: 0 }); return; }
-      if (r.code === "signed_out") set("verified", false);
-      setErr({ submit: r.message, ...(r.fields ?? {}) });
-      return;
-    }
-    const at = nowIso();
-    const consents: Consent[] = CONSENTS.filter((c) => d.agree[c.key]).map((c) => ({ key: c.key, text: c.text, version: c.version, at }));
-    const app: Application = {
-      id: newId(), mine: true, first: d.first.trim(), last: d.last.trim(), email: d.email.trim(), phone: d.phone.trim(), state: d.state, lga: d.lga.trim(), dob: d.dob,
-      occupation: d.occupation.trim() || "—", skills: d.skills, departments: d.departments, availability: d.availability, languages: d.languages, heard: d.heard || "—", nysc: d.nysc || undefined,
-      stage: "Submitted", submittedAt: at, consents,
-      guardian: minor ? { name: d.gName, contact: d.gContact, verified: true, at } : undefined,
-    };
-    setApps((p) => [...p.filter((a) => !a.mine), app]);
-    send("received", app.email, app.first, { first_name: app.first });
-    setD((p) => ({ ...p, done: true }));
+    setBusy(true);
+    const r = await submitApplicationAction(payload());
+    setBusy(false);
+    if (r.ok) { setD({ ...EMPTY, done: true }); window.scrollTo({ top: 0 }); return; }
+    if (r.code === "signed_out") set("verified", false);
+    setErr({ submit: r.message, ...(r.fields ?? {}) });
   };
-  const sendGuardianReal = async () => {
+  const sendGuardian = async () => {
     setBusy(true); setErr({});
     const r = await requestGuardianAction({ application: payload(), guardian: { name: d.gName, email: d.gContact } });
     setBusy(false);
     if (r.ok) { setGRefused(false); setGLink(r.data.link ?? ""); setD((p) => ({ ...p, gSent: true })); } else setErr({ guardian: r.message });
   };
-  const sendGuardian = () => {
-    const token = newId() + newId();
-    setGreqs((p) => [...p, { token, applicantFirst: d.first.trim(), guardianName: d.gName.trim(), contact: d.gContact.trim(), status: "pending", at: nowIso() }]);
-    send("guardian", d.gContact.trim(), d.gName.trim(), { applicant_first_name: d.first.trim(), consent_link: `${location.origin}/guardian-consent/${token}` });
-    setD((p) => ({ ...p, gSent: true, gToken: token }));
-  };
-  const reset = () => { setD(EMPTY); setErr({}); setOtp(""); setOtpSent(false); };
 
   if (!mounted) return <div className="min-h-[70vh]" />;
 
-  if (real && already && !d.done) {
+  if (already && !d.done) {
     return (
       <div className="mx-auto max-w-2xl px-4 md:px-8 py-16 min-h-[60vh]">
         <h1 className="text-[length:var(--text-display)]">You have already <em className="accent">applied.</em></h1>
@@ -187,7 +148,6 @@ export function ApplyForm({ real, departments, minAge, reviewDays, already = fal
         <div className="px-6 md:px-12 py-16 grid content-center gap-6">
           <p className="text-[length:var(--text-lead)] max-w-lg">We&apos;ll reply within {reviewDays} days. A confirmation email is on its way to <b>{d.email}</b>. You can check where your application stands any time.</p>
           <div className="flex gap-3 flex-wrap"><Link href="/dashboard" className="btn text-lg" data-cursor="Open">See my status <ArrowRight /></Link><Link href="/opportunities" className="btn btn-ghost text-lg">Browse calls</Link></div>
-          {!real && <button className="text-sm underline text-left" onClick={reset}>Start a new application (prototype)</button>}
         </div>
       </div>
     );
@@ -226,7 +186,7 @@ export function ApplyForm({ real, departments, minAge, reviewDays, already = fal
               <div><label className="label" htmlFor="last">Last name</label><input id="last" className="input" autoComplete="family-name" value={d.last} onChange={(e) => set("last", e.target.value)} aria-invalid={!!err.last} />{E("last")}</div>
             </div>
             <div><label className="label" htmlFor="phone">Phone</label><input id="phone" className="input" inputMode="tel" autoComplete="tel" placeholder="0803 123 4567" value={d.phone} onChange={(e) => set("phone", e.target.value)} aria-invalid={!!err.phone} /><span className="why">Why: to confirm it&apos;s really you and to reach you on activity days. Only admins who manage your state or programme see it.</span>{E("phone")}</div>
-            <div><label className="label" htmlFor="email">Email</label><input id="email" type="email" className="input" autoComplete="email" disabled={real && d.verified} value={d.email} onChange={(e) => set("email", e.target.value)} aria-invalid={!!err.email} /><span className="why">Why: we send your application updates here. We never share it.</span>{E("email")}</div>
+            <div><label className="label" htmlFor="email">Email</label><input id="email" type="email" className="input" autoComplete="email" disabled={d.verified} value={d.email} onChange={(e) => set("email", e.target.value)} aria-invalid={!!err.email} /><span className="why">Why: we send your application updates here. We never share it.</span>{E("email")}</div>
             <div className="grid sm:grid-cols-2 gap-5">
               <div><label className="label" htmlFor="state">State</label><select id="state" className="input" value={d.state} onChange={(e) => set("state", e.target.value)} aria-invalid={!!err.state}><option value="">Choose…</option>{STATE_NAMES.map((n) => <option key={n}>{n}</option>)}</select>{E("state")}</div>
               <div><label className="label" htmlFor="lga">LGA</label><input id="lga" className="input" value={d.lga} onChange={(e) => set("lga", e.target.value)} aria-invalid={!!err.lga} /><span className="why">Why: so we can place you near activities.</span>{E("lga")}</div>
@@ -240,15 +200,15 @@ export function ApplyForm({ real, departments, minAge, reviewDays, already = fal
             {/* OTP: blocks fake sign-ups */}
             <div className="border-2 border-ink p-4 grid gap-3">
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div><b>Verify it&apos;s you</b><span className="why">{real ? "We email a 6-digit code to the address above. Stops fake sign-ups." : "We send a 6-digit code to your phone or email. Stops fake sign-ups."}</span></div>
+                <div><b>Verify it&apos;s you</b><span className="why">We email a 6-digit code to the address above. Stops fake sign-ups.</span></div>
                 {d.verified ? <span className="stamp stamp-ok inline-flex items-center gap-1"><Check className="w-4 h-4" /> Verified</span> :
                   <button type="button" className="btn btn-sm btn-ghost" disabled={busy} onClick={sendOtp}>Send code</button>}
               </div>
               {otpSent && !d.verified && (
                 <div className="flex gap-2 items-start flex-wrap">
-                  <input className="input max-w-44" inputMode="numeric" maxLength={6} placeholder="123456" aria-label="6-digit code" value={otp} onChange={(e) => setOtp(e.target.value)} />
+                  <input className="input max-w-44" inputMode="numeric" maxLength={6} placeholder="6-digit code" aria-label="6-digit code" value={otp} onChange={(e) => setOtp(e.target.value)} />
                   <button type="button" className="btn btn-sm btn-ink" disabled={busy} onClick={checkOtp}>Check code</button>
-                  <p className="why w-full">{real ? <>We sent a 6-digit code to <b>{d.email}</b>. Check your spam folder if you can&apos;t see it.</> : <>Prototype: no message is sent. Use the demo code <b>123456</b>.</>}</p>
+                  <p className="why w-full"><>We sent a 6-digit code to <b>{d.email}</b>. Check your spam folder if you can&apos;t see it.</></p>
                 </div>
               )}
               {E("otp")}
@@ -293,12 +253,11 @@ export function ApplyForm({ real, departments, minAge, reviewDays, already = fal
                 <span className="why -mt-3">You&apos;re under 18. A parent or guardian confirms through their own email or phone before we review your application.</span>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div><label className="label" htmlFor="gn">Their name</label><input id="gn" className="input" value={d.gName} onChange={(e) => set("gName", e.target.value)} /></div>
-                  <div><label className="label" htmlFor="gc">{real ? "Their email" : "Their email or phone"}</label><input id="gc" className="input" type={real ? "email" : "text"} value={d.gContact} onChange={(e) => set("gContact", e.target.value)} /></div>
+                  <div><label className="label" htmlFor="gc">Their email</label><input id="gc" className="input" type="email" value={d.gContact} onChange={(e) => set("gContact", e.target.value)} /></div>
                 </div>
                 {d.gVerified ? <span className="stamp stamp-ok inline-flex items-center gap-1 self-start"><Check className="w-4 h-4" /> Guardian confirmed</span> : (
-                  real ? (
                     <div className="flex gap-2 flex-wrap items-start">
-                      <button type="button" className="btn btn-sm btn-ghost" disabled={busy || !d.gName.trim() || !/^\S+@\S+\.\S+$/.test(d.gContact.trim())} onClick={sendGuardianReal}>{d.gSent ? "Get a new link" : "Send the link to my guardian"}</button>
+                      <button type="button" className="btn btn-sm btn-ghost" disabled={busy || !d.gName.trim() || !/^\S+@\S+\.\S+$/.test(d.gContact.trim())} onClick={sendGuardian}>{d.gSent ? "Get a new link" : "Send the link to my guardian"}</button>
                       {d.gSent && <p className="why w-full">{gRefused ? <b className="text-alert">Your guardian declined. You can&apos;t submit this application.</b> : gLink ? <>Send this link to <b>{d.gName}</b> yourself, by WhatsApp or text. It works once for 7 days, and this page updates by itself when they answer.</> : <>We emailed <b>{d.gContact}</b>. This page updates by itself when they answer. The link works for 7 days.</>}</p>}
                       {d.gSent && gLink && !gRefused && (
                         <div className="w-full grid gap-2">
@@ -310,14 +269,6 @@ export function ApplyForm({ real, departments, minAge, reviewDays, already = fal
                         </div>
                       )}
                     </div>
-                  ) : (
-                  <div className="flex gap-2 flex-wrap items-start">
-                    <button type="button" className="btn btn-sm btn-ghost" disabled={!d.gName.trim() || !d.gContact.trim()} onClick={sendGuardian}>Send them a code</button>
-                    {d.gSent && <><input className="input max-w-44" inputMode="numeric" maxLength={6} placeholder="654321" aria-label="Guardian code" value={gOtp} onChange={(e) => setGOtp(e.target.value)} />
-                      <button type="button" className="btn btn-sm btn-ink" onClick={() => { if (gOtp === "654321") set("gVerified", true); else setErr({ guardian: "That code isn't right." }); }}>Confirm</button>
-                      <p className="why w-full">{greq?.status === "refused" ? <b className="text-alert">Your guardian declined. You can't submit this application.</b> : <>Waiting for your guardian to open the link we emailed. (Prototype: you can also use demo code <b>654321</b>.)</>}</p></>}
-                  </div>
-                  )
                 )}
                 {E("guardian")}
               </div>

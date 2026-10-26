@@ -1,18 +1,14 @@
 "use client";
-import { createContext, useCallback, useContext } from "react";
-import { DEMO_ADMINS, can as canDo, inScope, type Action, type Admin } from "./permissions";
-import { KEYS, SEED_AUDIT, newId, nowIso, useLocal, type AuditRow } from "./store";
+import { createContext, useContext } from "react";
+import { can as canDo, inScope, type Action, type Admin } from "./permissions";
 
-/** Set by the admin layout once AUTH_ENABLED: the real signed-in admin. Pages then use it instead of the prototype switcher. */
+/** Set by the admin layout: the real signed-in admin (read on the server, two-factor already done). */
 export const RealAdminContext = createContext<Admin | null>(null);
 
-/** Prototype: the role switcher stands in for real login. Production reads the admin from the Supabase session on the server. */
+/** The signed-in admin. The server has already checked every permission (rule 1); `can` here only decides what to show.
+ *  The audit log is written by the database itself (rule 4), so `log` is a no-op kept so older call sites keep compiling. */
 export function useAdmin() {
-  const [idx, setIdx] = useLocal<number>(KEYS.role, 0);
-  const [audit, setAudit] = useLocal<AuditRow[]>(KEYS.audit, SEED_AUDIT);
-  const real = useContext(RealAdminContext);
-  const admin: Admin = real ?? DEMO_ADMINS[idx] ?? DEMO_ADMINS[0];
-  // real mode: the database writes the audit log itself (rule 4), so the browser-side log does nothing
-  const log = useCallback((action: string, target: string) => real ? undefined : setAudit((p) => [{ id: newId(), at: nowIso(), who: admin.name, action, target }, ...p]), [admin.name, setAudit, real]);
-  return { admin, idx, setIdx, can: (a: Action) => canDo(admin, a), inScope: (r: Parameters<typeof inScope>[1]) => inScope(admin, r), log, audit };
+  const admin = useContext(RealAdminContext);
+  if (!admin) throw new Error("useAdmin must be used inside the admin area");
+  return { admin, can: (a: Action) => canDo(admin, a), inScope: (r: Parameters<typeof inScope>[1]) => inScope(admin, r), log: (_action: string, _target: string) => undefined };
 }

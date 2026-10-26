@@ -1,17 +1,14 @@
 import { redirect } from "next/navigation";
-import { authEnabled } from "@/lib/env";
 import { adminCaller, asCaller } from "@/lib/server/caller";
 
 export const dynamic = "force-dynamic";
 import { AttendanceAdmin } from "@/components/admin/AttendanceAdmin";
-import { AttendanceProto } from "./AttendanceProto";
 import { rosterForOpportunity } from "@/lib/services/attendance";
 import { adminOpportunities } from "@/lib/services/opportunities";
 
 export const metadata = { title: "Attendance" };
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ o?: string }> }) {
-  if (!authEnabled()) return <AttendanceProto />;
   const me = await adminCaller("attendance.take");
   if (!me) redirect("/admin/not-allowed");
   const q = await searchParams;

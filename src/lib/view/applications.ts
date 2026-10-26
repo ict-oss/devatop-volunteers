@@ -1,4 +1,4 @@
-import type { Application, Stage } from "../store";
+import type { Application, Stage } from "../types";
 import type { QueueRow } from "../services/review";
 
 const STAGE: Record<QueueRow["stage"], Stage> = { submitted: "Submitted", under_review: "Under review", interview: "Interview", needs_info: "Needs info" };

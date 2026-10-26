@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowRight } from "./Marks";
-import { useLocal, KEYS } from "@/lib/store";
+import { useLocal } from "@/lib/useLocal";
 
 const NAV = [
   ["Opportunities", "/opportunities"],
@@ -61,7 +61,7 @@ export function ApplyBar() {
 }
 
 export function CookieBanner() {
-  const [c, setC] = useLocal<"accepted" | "essential" | null>(KEYS.cookies, null);
+  const [c, setC] = useLocal<"accepted" | "essential" | null>("dv.cookies", null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted || c) return null;

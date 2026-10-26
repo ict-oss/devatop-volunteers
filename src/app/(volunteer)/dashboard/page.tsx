@@ -4,14 +4,14 @@ import { useEffect, useMemo, useRef } from "react";
 import gsap from "gsap";
 import { Check, Tally } from "@/components/Marks";
 import { Photo, usePhoto } from "@/components/Photo";
-import { REVIEW_DAYS, fmtDate } from "@/lib/data";
+import { fmtDate } from "@/lib/data";
 import { useOpps, useSignups } from "@/lib/useOpps";
 import { useLive } from "@/lib/live";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { replyNeedsInfoAction } from "@/app/actions/apply";
-import { KEYS, STAGES, useLocal, type Stage } from "@/lib/store";
-import { CERT_CODE, useMe } from "@/lib/useMe";
+import { STAGES, type Stage } from "@/lib/types";
+import { useMe } from "@/lib/useMe";
 import { prefersReducedMotion } from "@/lib/motion";
 import { photoSrc } from "@/lib/images";
 import { useComms } from "@/lib/useComms";
@@ -25,18 +25,16 @@ const nextText = (days: number): Record<Stage, string> => ({
   Approved: "You're in. Finish the steps below, then pick your first call.",
   Rejected: "We can't take your application forward this time. This is not a no forever.",
 });
-const EMPTY_READ: Record<string, boolean> = {};
 const MILESTONES = [[1, "First action"], [10, "10 hours"], [50, "50 hours"], [100, "100 hours"]] as const;
 
 export default function Dashboard() {
-  const { me, approved, pending, myHours, loadDemo, real } = useMe();
+  const { me, approved, pending, myHours } = useMe();
   const live = useLive();
   const router = useRouter();
   const [reply, setReply] = useState(""); const [replyMsg, setReplyMsg] = useState(""); const [replying, setReplying] = useState(false);
   const sendReply = async () => { setReplying(true); const r = await replyNeedsInfoAction(reply); setReplying(false); if (r.ok) { setReply(""); router.refresh(); } else setReplyMsg(r.message); };
   const { settings, announcements } = useComms();
   const { ids: signups } = useSignups();
-  const [read] = useLocal<Record<string, boolean>>(KEYS.read, EMPTY_READ);
   const hasPhoto = usePhoto("profile-me");
   const stamp = useRef<HTMLDivElement>(null);
   const { opps } = useOpps();
@@ -57,10 +55,7 @@ export default function Dashboard() {
           <div className="mt-8 flex gap-3 flex-wrap"><Link href="/apply" className="btn text-lg">Become a volunteer</Link><Link href="/opportunities" className="btn btn-ghost text-lg">Find a call to action</Link></div>
         </div>
         <div className="md:col-span-4 border-2 border-dashed border-ink p-5 self-start">
-          {real ? (<><b>Not applied yet?</b><p className="text-sm mt-1">Your dashboard shows your application status, hours and certificates as soon as you apply.</p></>) : (<>
-          <b>Prototype shortcut</b>
-          <p className="text-sm mt-1">Skip the queue and see the dashboard of an approved volunteer with some hours.</p>
-          <button className="btn btn-sm btn-ink mt-3" onClick={loadDemo}>Load demo volunteer “Amaka”</button></>)}
+          <><b>Not applied yet?</b><p className="text-sm mt-1">Your dashboard shows your application status, hours and certificates as soon as you apply.</p></>
         </div>
       </div>
     );
@@ -68,11 +63,8 @@ export default function Dashboard() {
 
   const stageIdx = me.stage === "Needs info" ? 1 : me.stage === "Rejected" ? 1 : STAGES.indexOf(me.stage);
   const waText = encodeURIComponent(`I'm in. I just joined Devatop as a volunteer. Volunteers are known by action. Join me: https://volunteer.devatop.org`);
-  // real mode: every tick comes from a database record (trainings, guide reads, sign-ups); prototype: from browser storage
-  const checklist: readonly (readonly [string, boolean])[] = live ? live.startHere.map((i) => [i.label, i.done] as const) : [
-    ["Watch the orientation video", false], ["Complete safeguarding training", false], ["Join the volunteers WhatsApp group", false],
-    ["Read the Code of Conduct", !!read.conduct], ["Read the Safeguarding guide", !!read.safeguarding], ["Sign up for your first call", mine.length > 0],
-  ];
+  // every tick comes from a database record (trainings, guide reads, sign-ups)
+  const checklist: readonly (readonly [string, boolean])[] = (live?.startHere ?? []).map((i) => [i.label, i.done] as const);
   const done = checklist.filter((c) => c[1]).length;
 
   return (
@@ -115,9 +107,9 @@ export default function Dashboard() {
               <li key={s}><div className={`h-3 border-2 border-ink ${i <= stageIdx && me.stage !== "Rejected" ? (me.stage === "Approved" ? "bg-stamp border-stamp" : "bg-ink") : ""}`} /><div className={`mt-1.5 text-xs md:text-sm font-bold ${i === stageIdx ? "" : "opacity-60"}`}>{s}</div></li>
             ))}
           </ol>
-          <p className="mt-4 max-w-2xl text-[length:var(--text-lead)]"><b>What happens next:</b> {nextText(live?.reviewDays ?? REVIEW_DAYS)[me.stage]}</p>
+          <p className="mt-4 max-w-2xl text-[length:var(--text-lead)]"><b>What happens next:</b> {nextText(live?.reviewDays ?? 7)[me.stage]}</p>
           {me.note && <p className="mt-2 border-l-4 border-orange pl-3"><b>Note from the team:</b> {me.note}</p>}
-          {real && me.stage === "Needs info" && (
+          {me.stage === "Needs info" && (
             <div className="mt-4 max-w-2xl border-2 border-ink p-4 grid gap-3">
               <label className="label" htmlFor="reply">Your answer</label>
               <textarea id="reply" className="input" rows={4} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Write what the team asked for" />
@@ -177,9 +169,9 @@ export default function Dashboard() {
             </section>
           </div>
 
-          {(live ? live.certs.length > 0 : approved >= 10) && (
+          {(live?.certs.length ?? 0) > 0 && (
             <section className="border-2 border-ink p-5 flex flex-wrap items-center justify-between gap-4">
-              <div><b className="text-lg">Your certificate is ready.</b><p className="text-sm">Anyone can verify it online with code {live ? live.certs[0].code : CERT_CODE}.</p></div>
+              <div><b className="text-lg">Your certificate is ready.</b><p className="text-sm">Anyone can verify it online with code {live?.certs[0]?.code}.</p></div>
               <Link href="/certificates" className="btn">See my certificate</Link>
             </section>
           )}

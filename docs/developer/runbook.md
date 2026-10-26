@@ -5,7 +5,7 @@ What to do when something goes wrong. Keep this next to the handover document.
 ## The site is down or very slow
 1. Vercel dashboard > Deployments: is the latest deployment "Ready"? If not, open its log. If the latest one broke things, **Promote** the previous good deployment.
 2. Supabase dashboard > Project health. If the database is paused or over its limits, fix that first.
-3. Still stuck: set `AUTH_ENABLED=false` in Vercel and redeploy. Visitors see the sample-data prototype instead of errors (no real data is shown or changed).
+3. Still stuck: Promote the last good deployment (Vercel > Deployments), and tell the developer which page and what you saw (never include names or emails in the message).
 
 ## Nobody receives emails
 Admin > Messages > **Sent log**. "skipped" means no `BREVO_API_KEY` is set. "failed" means Brevo refused: check the key, that the sender address is verified in Brevo, and Brevo's daily limit. Volunteers can still sign in only if Supabase's own email works: Supabase > Authentication > SMTP Settings must point at Brevo or Resend.

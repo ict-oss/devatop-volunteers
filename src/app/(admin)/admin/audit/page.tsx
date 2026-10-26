@@ -1,16 +1,13 @@
 import { redirect } from "next/navigation";
-import { authEnabled } from "@/lib/env";
 import { adminCaller, asCaller, trusted } from "@/lib/server/caller";
 
 export const dynamic = "force-dynamic";
 import { AuditAdmin } from "@/components/admin/AuditAdmin";
-import { AuditProto } from "./AuditProto";
 import { auditRaw, nameAuditRows } from "@/lib/services/overview";
 
 export const metadata = { title: "Audit log" };
 
 export default async function Page() {
-  if (!authEnabled()) return <AuditProto />;
   const me = await adminCaller("audit.see");
   if (!me) redirect("/admin/not-allowed");
   const raw = await asCaller(me.caller, (tx) => auditRaw(tx)); // the admin's own query finishes first

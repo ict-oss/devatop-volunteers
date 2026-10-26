@@ -43,7 +43,7 @@ export function AdminsAdmin({ admins, meId, programmes, departments }: { admins:
 
       <form onSubmit={add} className="border-2 border-ink p-4 grid gap-3" aria-label="Add an admin">
         <b>Add an admin</b>
-        <p className="text-sm">The person must have signed in to the site once with this email address (so their account exists). Ask them to open the log-in page, enter the email and the code, then add them here.</p>
+        <p className="text-sm">The person must first create an account on the site with this email address (the Create an account page). Then add them here.</p>
         <div className="grid sm:grid-cols-3 gap-3">
           <label><span className="label">Email</span><input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@devatop.org" /></label>
           <label><span className="label">Role</span><select className="input" value={role} onChange={(e) => { setRole(e.target.value as Role); setScope(NONE); }}>{ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</select></label>

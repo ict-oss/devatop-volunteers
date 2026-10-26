@@ -10,9 +10,16 @@ const formReset = (page) => page.waitForFunction(() => document.querySelector("#
 const expectText = async (page, text, timeout = 15000) => page.getByText(text, { exact: false }).first().waitFor({ timeout });
 const when = (hours) => { const d = new Date(Date.now() + hours * 36e5); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
 
+const PASSWORD = "Test-pass-2026";
+const known = new Set(); // the first time we meet an email we create the account; after that we sign in
 async function login(page, email) {
-  await page.goto(BASE + "/login"); await page.fill("#email", email); await page.getByRole("button", { name: "Send me a code" }).click();
-  await page.fill("#code", "123456"); await page.getByRole("button", { name: "Sign in" }).click(); await page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 30000 });
+  if (!known.has(email)) {
+    known.add(email);
+    await page.goto(BASE + "/signup"); await page.fill("#email", email); await page.fill("#password", PASSWORD); await page.fill("#again", PASSWORD); await page.getByRole("button", { name: "Create my account" }).click();
+  } else {
+    await page.goto(BASE + "/login"); await page.fill("#email", email); await page.fill("#password", PASSWORD); await page.getByRole("button", { name: "Sign in" }).click();
+  }
+  await page.waitForURL((u) => !u.pathname.startsWith("/login") && !u.pathname.startsWith("/signup"), { timeout: 30000 });
 }
 
 (async () => {
@@ -25,8 +32,21 @@ async function login(page, email) {
   await step("home and opportunities render from the database", async () => { await visitor.p.goto(BASE + "/opportunities"); await expectText(visitor.p, "open call"); });
   await step("signed-out visitor is sent to login from /admin and /dashboard", async () => { await visitor.p.goto(BASE + "/admin"); await visitor.p.waitForURL(/\/login/); await visitor.p.goto(BASE + "/dashboard"); await visitor.p.waitForURL(/\/login/); });
 
+  console.log("\nSign-in with a password");
+  await step("a weak or mismatched password is refused when creating an account", async () => {
+    await visitor.p.goto(BASE + "/signup"); await visitor.p.fill("#email", "weak@example.com"); await visitor.p.fill("#password", "abc"); await visitor.p.fill("#again", "abc"); await visitor.p.getByRole("button", { name: "Create my account" }).click(); await expectText(visitor.p, "at least 8");
+    await visitor.p.fill("#password", "Valid-pass-1"); await visitor.p.fill("#again", "Valid-pass-2"); await visitor.p.getByRole("button", { name: "Create my account" }).click(); await expectText(visitor.p, "not the same");
+  });
+  await step("a wrong password is refused with a plain message, and the email is not in the address bar", async () => {
+    await visitor.p.goto(BASE + "/login"); await visitor.p.fill("#email", "nobody@example.com"); await visitor.p.fill("#password", "Wrong-pass-1"); await visitor.p.getByRole("button", { name: "Sign in" }).click(); await expectText(visitor.p, "Wrong email or password");
+    if (/nobody|Wrong-pass/.test(visitor.p.url())) throw new Error("credentials in the URL");
+  });
+  await step("forgot password: the page confirms without saying whether the email has an account", async () => {
+    await visitor.p.goto(BASE + "/login/forgot"); await visitor.p.fill("#email", "nobody@example.com"); await visitor.p.getByRole("button", { name: "Send me a link" }).click(); await expectText(visitor.p, "If there is an account");
+  });
+
   console.log("\nAdmin sign-in, two-factor");
-  await step("admin signs in with an email code and is held at two-factor", async () => { await login(admin.p, "admin1@devatop.org"); await admin.p.waitForURL(/two-factor/); await expectText(admin.p, "One more"); });
+  await step("admin signs in with email and password and is held at two-factor", async () => { await login(admin.p, "admin1@devatop.org"); await admin.p.waitForURL(/two-factor/); await expectText(admin.p, "One more"); });
   await step("admin cannot reach /admin before two-factor", async () => { await admin.p.goto(BASE + "/admin/hours"); await admin.p.waitForURL(/two-factor/); });
   await step("wrong authenticator code is refused, right one lets them in", async () => {
     await admin.p.fill("#totp", "000000"); await admin.p.getByRole("button", { name: /Continue/ }).click(); await expectText(admin.p, "not right");
@@ -57,7 +77,7 @@ async function login(page, email) {
   await step("amaka applies in three steps", async () => {
     const p = amaka.p; await p.goto(BASE + "/apply"); await p.waitForSelector("#first");
     await p.fill("#first", "Amaka"); await p.fill("#last", "Obi"); await p.fill("#phone", "0803 123 4567"); await p.selectOption("#state", "Lagos"); await p.fill("#lga", "Yaba"); await p.fill("#dob", "2001-04-18");
-    await expectText(p, "Verified"); // already signed in from the 'not allowed' step: the code step is skipped
+    await expectText(p, "Signed in"); // already signed in from the 'not allowed' step: the account step is skipped
     await p.getByRole("button", { name: /^Next/ }).click();
     await p.getByRole("button", { name: "Design", exact: true }).click(); await p.locator("fieldset", { hasText: "Where would you like to help" }).locator(".chip").first().click(); await p.getByRole("button", { name: "Weekends", exact: true }).click();
     await p.getByRole("button", { name: /^Next/ }).click();
@@ -193,7 +213,7 @@ async function login(page, email) {
     await admin.p.locator("tr", { hasText: "Amaka Obi" }).first().getByRole("button", { name: "Reactivate" }).click(); await expectText(admin.p, "Active again.");
   });
   const newbie = await mk();
-  await step("someone who has not signed in yet cannot be made an admin; after signing in once they can", async () => {
+  await step("someone who has no account yet cannot be made an admin; after signing in once they can", async () => {
     await admin.p.goto(BASE + "/admin/admins"); await admin.p.fill('input[type=email]', "newadmin@example.com"); await admin.p.getByRole("button", { name: "Add admin" }).click(); await expectText(admin.p, "has not signed in yet");
     await login(newbie.p, "newadmin@example.com");
     await admin.p.goto(BASE + "/admin/admins"); await admin.p.fill('input[type=email]', "newadmin@example.com"); await admin.p.getByRole("button", { name: "Add admin" }).click(); await expectText(admin.p, "is now an admin");

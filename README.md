@@ -2,7 +2,7 @@
 
 Volunteer platform for Devatop Centre for Africa Development (volunteer.devatop.org): a public site, a volunteer portal and an admin section in one Next.js app. Source of truth for features: the *Devatop Volunteers Platform: Feature Requirements* document.
 
-> **Status:** the real system: sign-in by emailed code, two-factor for admins, applications, review, calls, hours, QR check-in, certificates, messages and an Admin section, all on the database. There is no sample data and no prototype mode; the site needs its Supabase settings (see `docs/developer/deploy.md`).
+> **Status:** the real system: sign-in with email and password, two-factor for admins, applications, review, calls, hours, QR check-in, certificates, messages and an Admin section, all on the database. There is no sample data and no prototype mode; the site needs its Supabase settings (see `docs/developer/deploy.md`).
 
 ## Run it locally (about 5 minutes)
 

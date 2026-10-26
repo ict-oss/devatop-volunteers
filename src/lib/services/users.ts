@@ -38,7 +38,7 @@ export async function nameAdmins(owner: Db, rows: AdminRaw[]): Promise<AdminRowV
   if (rows.length) for (const r of rowsOf<{ id: string; email: string | null }>(await owner.execute(sql`select id, email from auth.users where id::text in (${sql.join(rows.map((x) => sql`${x.userId}`), sql`, `)})`))) emails.set(r.id, r.email ?? "");
   return rows.map((r) => ({ ...r, email: emails.get(r.userId) ?? "", roleLabel: ROLE_LABEL[r.role], scope: r.state ?? r.programme ?? r.department ?? "" }));
 }
-/** Someone can become an admin only after they have signed in once (that creates their account). Trusted connection. */
+/** Someone can become an admin only after they have created an account (at /signup). Trusted connection. */
 export async function userIdByEmail(owner: Db, email: string): Promise<string | null> {
   const r = rowsOf<{ id: string }>(await owner.execute(sql`select u.id from auth.users u join public.users pu on pu.id = u.id where lower(u.email) = lower(${email.trim()}) limit 1`))[0];
   return r?.id ?? null;

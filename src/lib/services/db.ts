@@ -35,7 +35,7 @@ const FRIENDLY: Record<string, string> = {
   no_approved_hours: "This volunteer has no approved hours yet.",
   at_least_two_super_admins: "Devatop must always have at least two Super Admins, so this change is not allowed. Add another Super Admin first.",
   role_needs_scope: "This role needs a state, programme or department. Pick one.",
-  not_signed_up: "That person has not signed in yet. Ask them to sign in once with that email address, then add them here.",
+  not_signed_up: "That person has no account yet. Ask them to create one at /signup with that email address, then add them here.",
   own_admin_role: "You cannot change or remove your own admin role. Ask another Super Admin.",
   bad_status: "That status cannot be set here.",
   too_big: "That file is too big. Pick a smaller one.",

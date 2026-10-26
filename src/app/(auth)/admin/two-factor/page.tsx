@@ -12,7 +12,7 @@ export default async function TwoFactorPage() {
   return (
     <>
       <h1 className="text-[length:var(--text-display)]">One more <em className="accent">step.</em></h1>
-      <p className="mt-4 text-lg">Admins sign in with a second check, so a stolen email code is not enough to open the admin area.</p>
+      <p className="mt-4 text-lg">Admins sign in with a second check, so a stolen password is not enough to open the admin area.</p>
       <div className="mt-8"><TwoFactorForm /></div>
     </>
   );

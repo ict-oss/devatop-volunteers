@@ -14,7 +14,7 @@ const under = (path: string, prefix: string) => path === prefix || path.startsWi
 /** Only same-site paths are accepted as a "go back to" target, so a login link can't send someone to another website. */
 export function safeNext(next: string | null | undefined): string | null {
   if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\") || /[\u0000-\u001f]/.test(next)) return null;
-  if (next.startsWith("/login") || next.startsWith("/auth/")) return null;
+  if (next.startsWith("/login") || next.startsWith("/signup") || next.startsWith("/auth/")) return null;
   return next;
 }
 

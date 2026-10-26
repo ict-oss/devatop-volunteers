@@ -5,7 +5,8 @@ import { Photo } from "@/components/Photo";
 import { ArrowRight, Check } from "@/components/Marks";
 import { HEARD, LANGUAGES, SKILLS, STATE_NAMES } from "@/lib/data";
 import { CONSENTS } from "@/lib/consent-texts";
-import { sendCode, verifyCode } from "@/lib/auth/otp";
+import { createAccount, signInWithPassword } from "@/lib/auth/password";
+import { PASSWORD_MIN } from "@/lib/auth/password-rules";
 import { supabaseBrowser } from "@/lib/auth/supabase-browser";
 import { guardianStatusAction, requestGuardianAction, submitApplicationAction } from "@/app/actions/apply";
 import { ageOf } from "@/lib/types";
@@ -36,14 +37,15 @@ export function ApplyForm({ departments, minAge, reviewDays, already = false }: 
   // the unfinished form is kept in this browser only, so a closed tab does not lose it; it is cleared once submitted
   const [d, setD, hasDraft] = useLocal<Draft>("dv.apply-draft", EMPTY);
   const [err, setErr] = useState<Record<string, string>>({});
-  const [otp, setOtp] = useState(""); const [otpSent, setOtpSent] = useState(false);
+  // the password lives only in this component's memory: it is never saved in the draft or sent anywhere except to sign in or create the account
+  const [password, setPassword] = useState(""); const [haveAccount, setHaveAccount] = useState(false);
   const [busy, setBusy] = useState(false);
   const [gRefused, setGRefused] = useState(false);
   const [gLink, setGLink] = useState(""); // set when the site does not email the guardian: the applicant passes the link on
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // if this person already verified their email (signed in), skip the code step
+  // if this person is already signed in, skip the account step
   useEffect(() => {
     supabaseBrowser().auth.getUser().then(({ data }) => {
       const email = data.user?.email;
@@ -79,7 +81,7 @@ export function ApplyForm({ departments, minAge, reviewDays, already = false }: 
     if (!d.lga.trim()) e.lga = "Tell us your LGA.";
     if (!d.dob) e.dob = "We need your date of birth.";
     else if (tooYoung) e.dob = `Sorry, the lowest age we accept is ${minAge}.`;
-    if (!d.verified) e.otp = "Verify your phone or email with the code first.";
+    if (!d.verified) e.otp = "Create your account (or sign in) first.";
     setErr(e);
     if (!Object.keys(e).length) { set("step", 2); window.scrollTo({ top: 0 }); }
   };
@@ -91,14 +93,16 @@ export function ApplyForm({ departments, minAge, reviewDays, already = false }: 
     setErr(e);
     if (!Object.keys(e).length) { set("step", 3); window.scrollTo({ top: 0 }); }
   };
-  const sendOtp = async () => {
-    if (!/^\S+@\S+\.\S+$/.test(d.email.trim())) { setErr({ otp: "Enter your email address first." }); return; }
+  const account = async () => {
+    const email = d.email.trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) { setErr({ otp: "Enter your email address first." }); return; }
+    if (!password) { setErr({ otp: haveAccount ? "Enter your password." : "Choose a password." }); return; }
     setBusy(true);
-    try { await sendCode({ email: d.email.trim() }); setOtpSent(true); setErr({}); } catch (e) { setErr({ otp: (e as Error).message }); } finally { setBusy(false); }
-  };
-  const checkOtp = async () => {
-    setBusy(true);
-    try { await verifyCode({ email: d.email.trim() }, otp.replace(/\s/g, "")); set("verified", true); setErr({}); } catch (e) { setErr({ otp: (e as Error).message }); } finally { setBusy(false); }
+    try {
+      if (haveAccount) await signInWithPassword(email, password);
+      else if ((await createAccount(email, password)) === "check_email") { setErr({ otp: "We sent a confirmation link to your email. Open it, then come back here and sign in." }); setHaveAccount(true); setBusy(false); return; }
+      setPassword(""); set("verified", true); setErr({});
+    } catch (e) { setErr({ otp: (e as Error).message }); } finally { setBusy(false); }
   };
   /** What the server receives. The wording of each consent and the email address come from the server, not from here. */
   const payload = () => ({
@@ -197,18 +201,17 @@ export function ApplyForm({ departments, minAge, reviewDays, already = false }: 
               <div><label className="label" htmlFor="occ">Occupation <span className="font-normal">(optional)</span></label><input id="occ" className="input" placeholder="Student, designer, NYSC…" value={d.occupation} onChange={(e) => set("occupation", e.target.value)} /></div>
             </div>
 
-            {/* OTP: blocks fake sign-ups */}
+            {/* the account: your sign-in for the dashboard later */}
             <div className="border-2 border-ink p-4 grid gap-3">
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div><b>Verify it&apos;s you</b><span className="why">We email a 6-digit code to the address above. Stops fake sign-ups.</span></div>
-                {d.verified ? <span className="stamp stamp-ok inline-flex items-center gap-1"><Check className="w-4 h-4" /> Verified</span> :
-                  <button type="button" className="btn btn-sm btn-ghost" disabled={busy} onClick={sendOtp}>Send code</button>}
+                <div><b>{haveAccount ? "Sign in to continue" : "Choose a password"}</b><span className="why">{haveAccount ? "Use the email above and your password." : `This makes your account, so you can see your application and sign up for calls. At least ${PASSWORD_MIN} characters, with letters and a number.`}</span></div>
+                {d.verified && <span className="stamp stamp-ok inline-flex items-center gap-1"><Check className="w-4 h-4" /> Signed in</span>}
               </div>
-              {otpSent && !d.verified && (
+              {!d.verified && (
                 <div className="flex gap-2 items-start flex-wrap">
-                  <input className="input max-w-44" inputMode="numeric" maxLength={6} placeholder="6-digit code" aria-label="6-digit code" value={otp} onChange={(e) => setOtp(e.target.value)} />
-                  <button type="button" className="btn btn-sm btn-ink" disabled={busy} onClick={checkOtp}>Check code</button>
-                  <p className="why w-full"><>We sent a 6-digit code to <b>{d.email}</b>. Check your spam folder if you can&apos;t see it.</></p>
+                  <input className="input max-w-xs" type="password" autoComplete={haveAccount ? "current-password" : "new-password"} aria-label="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <button type="button" className="btn btn-sm btn-ink" disabled={busy} onClick={account}>{haveAccount ? "Sign in" : "Create my account"}</button>
+                  <button type="button" className="text-sm underline font-bold self-center" onClick={() => { setHaveAccount((h) => !h); setErr({}); }}>{haveAccount ? "I need to create an account" : "I already have an account"}</button>
                 </div>
               )}
               {E("otp")}

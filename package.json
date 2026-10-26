@@ -14,7 +14,9 @@
     "test:db": "vitest run tests/db",
     "db:migrate": "node --env-file=.env.local ./node_modules/drizzle-kit/bin.cjs migrate",
     "db:check": "node --env-file=.env.local tools/db-check.mjs",
-    "db:seed": "node --env-file=.env.local --import tsx tools/seed.ts"
+    "db:seed": "node --env-file=.env.local --import tsx tools/seed.ts",
+    "db:demo": "node --env-file=.env.local --import tsx tools/demo.ts add",
+    "db:demo:remove": "node --env-file=.env.local --import tsx tools/demo.ts remove"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

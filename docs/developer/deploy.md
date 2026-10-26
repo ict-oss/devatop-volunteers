@@ -57,3 +57,7 @@ To switch email on later: verify the sender in Brevo, set `BREVO_API_KEY` and `E
 ```json
 { "crons": [{ "path": "/api/cron/reminders", "schedule": "0 15 * * *" }] }
 ```
+
+## Temporary demo volunteers (preview only)
+
+`npm run db:demo` adds 10 demo volunteers (emails ending `@demo.devatop.invalid`) with approved hours and departments, so the home numbers, the map and the Admin screens show something. They count in the public figures like real volunteers, so **remove them before launch**: `npm run db:demo:remove` deletes exactly those people and their hours and nothing else. Approved hours need a deciding admin, so sign in as a Super Admin once before adding them.

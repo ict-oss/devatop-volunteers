@@ -8,7 +8,7 @@ import { createOpportunity, opportunitySchema, setOpportunityPublished, updateOp
 import { sendTemplateEmail } from "@/lib/email/notify";
 import { adminCaller, asCaller, trusted } from "@/lib/server/caller";
 import { fail, ok, run, type Result } from "@/lib/server/action";
-import { publicEnv } from "@/lib/env";
+import { emailEnabled, publicEnv } from "@/lib/env";
 import type { Action } from "@/lib/permissions";
 import { logExport, personalExport } from "@/lib/services/reports";
 import { audienceFor, audienceSchema, bulkSchema, deliverBulk, MAX_BULK, recordMessage, resetTemplate, saveMessagingSettings, saveTemplate, settingsSchema, templateSchema } from "@/lib/services/messaging";
@@ -117,6 +117,11 @@ export const sendBulkAction = async (raw: unknown) => asAdmin("email.bulk", asyn
   const recipients = await asCaller(me.caller, (tx) => audienceFor(tx, p.data.audience));
   if (recipients.length === 0) return fail("no_recipients", "Nobody matches these filters.");
   if (recipients.length > MAX_BULK) return fail("too_many", `That is ${recipients.length} people. Send to at most ${MAX_BULK} at a time: narrow it by state or department.`);
+  if (!emailEnabled()) {
+    // email is off: the message goes to the announcements board only
+    await asCaller(me.caller, (tx) => recordMessage(tx, me.caller.sub, { ...p.data, announce: true }, 0, false));
+    return ok({ sent: 0, failed: 0, skipped: recipients.length });
+  }
   const result = await deliverBulk(trusted(), recipients, p.data.subject, p.data.body);
   await asCaller(me.caller, (tx) => recordMessage(tx, me.caller.sub, p.data, result.sent));
   return ok(result);

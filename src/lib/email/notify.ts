@@ -1,6 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { DEFAULT_SETTINGS, DEFAULT_TEMPLATES, isGroupLink, renderEmail, type Settings, type TemplateId, type Vars } from "../emails";
 import { appSettings, emailLog, emailTemplates } from "../db/schema";
+import { emailEnabled } from "../env";
 import type { Db } from "../services/db";
 import { sendViaBrevo, type Sender } from "./send";
 
@@ -26,6 +27,7 @@ export type NotifyOptions = { template: TemplateId; to: string; toName?: string;
  * never an address or body) goes to email_log. `db` is the trusted server connection.
  */
 export async function sendTemplateEmail(db: Db, o: NotifyOptions): Promise<"sent" | "failed" | "skipped"> {
+  if (!o.send && !emailEnabled()) return "skipped"; // email is switched off: nothing is sent and nothing is logged
   let status: "sent" | "failed" | "skipped" = "failed";
   try {
     const settings = await loadSettings(db);

@@ -13,7 +13,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
   - Application on the database (3-step form, consents with exact wording, under-18 guardian by emailed link), admin review queue (approve / reject / needs info, with the emails), approval puts the volunteer in their departments.
   - Volunteer dashboard, calls and sign-ups with waitlist, hours (remote log, approval), QR check-in/out, certificates (issue, PDF with QR, public verify page), profile, "download my data", delete account, guides with read receipts, chat rooms (database decides access), announcements.
   - Admin: overview, volunteers, opportunities, attendance + QR, hours, certificates, departments (add/rename/merge/archive/restore), messages (send to a group, edit the seven emails, WhatsApp link and sender settings, sent log), reports with logged exports, audit log, site images and clips (stored in Supabase Storage).
-  - Daily reminder cron: `/api/cron/reminders` (Vercel cron in `vercel.json`, protected by `CRON_SECRET`).
+  - The site's own emails (approval, reminders, thanks, guardian link, group messages) are OFF unless `EMAIL_ENABLED=true` (needs Brevo). With them off: under-18 applicants are given the guardian link to pass on, Admin > Messages posts announcements only, and the reminder cron is not scheduled (`vercel.json` has no `crons`; the route `/api/cron/reminders` stays, protected by `CRON_SECRET`). Sign-in codes are sent by Supabase either way.
 - How it is built (read this before changing anything): `src/lib/services/*` hold ALL database logic as plain functions that take a Drizzle `db`/transaction; they are tested against the real migrations in PGlite (`tests/services/`, `tests/db/`). `src/app/actions/*` are thin server actions (check the permission, validate with Zod, run a service as the person via `asCaller`). Pages are server components that pick the real component or the prototype one with `authEnabled()`. Screens built on the prototype keep working through hooks (`useMe`, `useOpps`, `useSignups`, `useComms`) that return real data from `LiveContext` (`src/lib/live.tsx`, filled by `src/lib/server/live.ts`).
 - Rule when writing server code: never `await` a query on the trusted connection (`trusted()`) inside an `asCaller` callback. Finish the person's query first (the local test database has one connection and would deadlock).
 - Local end-to-end run with no accounts: `npx tsx tools/e2e/harness.ts` (in-memory Postgres + fake Supabase Auth + fake Brevo), start the app with the printed variables plus `AUTH_ENABLED=true DB_POOL_MAX=1`, then `node tools/e2e/scenario.cjs` (needs Playwright). The code `123456` is accepted everywhere.
@@ -21,16 +21,16 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - Images: stand-in artwork in `public/photos/`, silent clips in `public/video/` (`node tools/standins/make.mjs` regenerates). Admin > Site images replaces a picture or a silent clip (prototype: that browser only; with `AUTH_ENABLED=true`: uploaded to the public Supabase Storage bucket `site-images`, recorded in the `site_images` table with who confirmed consent, shown to every visitor via `LiveContext.images`). The bucket is created by the app on first upload. Replace stand-ins with real, consented photos. `HERO_PHOTOS_IN_LETTERS` in `src/lib/images.ts` switches the ACTION letters from solid orange to photos.
 
 **Go-live checklist (see docs/developer/deploy.md)**
-1. Supabase: email code on, authenticator two-factor on, email template shows the code, Site URL set, SMTP sender (Brevo) set.
+1. Supabase: email code on, authenticator two-factor on, email template shows the code (editing it needs custom SMTP), Site URL set. Custom SMTP (Brevo) is optional for testing, needed before a real launch because Supabase's built-in sender allows only a few emails an hour.
 2. `npm run db:migrate && npm run db:seed` on the live database; sign in once with each of the first two Super Admin emails, then run the SQL in `docs/developer/database.md`.
-3. Vercel variables: everything in `.env.example` (`BREVO_API_KEY`, `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` = Session pooler). Verify the sender address in Brevo.
+3. Vercel variables: everything in `.env.example` that you need (`SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` = Session pooler, `CRON_SECRET`; `BREVO_API_KEY` and `EMAIL_ENABLED=true` only when you switch the site's emails on).
 4. Set `AUTH_ENABLED=true`, redeploy, sign in as a Super Admin, set the WhatsApp link in Admin > Messages > Settings.
 
 **Not done yet (in this order)**
 1. Replace `src/lib/store.ts` / prototype components once the real system is live (delete `*Proto.tsx`, `useLocal` use, `data.ts` sample data).
 2. Phase 2 and later: department-lead "Team Lead" volunteer role screens, join-another-department requests, tags and bulk actions, vetting notes, documents upload, training completion screens, PWA, WhatsApp Business API, email to volunteers when a department changes.
 3. Real photos and clips uploaded through Admin > Site images (replace stand-ins), a tested backup restore (record the date in `docs/developer/runbook.md`), and fill in `docs/developer/handover.md` with the real account owners.
-4. Facts marked "(confirm)" must be checked by Devatop (sender address, review days, minimum age 16, department list, event times, coordinator phone, safeguarding renewal period).
+4. Facts marked "(confirm)" must be checked by Devatop: the full question list with where to change each answer is `docs/confirm-with-devatop.md`.
 
 ## Stack
 - Next.js 16 (App Router), TypeScript strict. Note: Next 16 calls middleware "proxy" (`src/proxy.ts`, exported `proxy`).
@@ -88,4 +88,5 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - Windows 260-character path limit: keep the repo in a short path (for example `C:\dv\devatop-volunteers`); deep folders break git and esbuild.
 - Use the Supabase **Session pooler** connection string for `DATABASE_URL` (the direct address needs IPv6).
 - Facts marked "(confirm)" in the copy (sender address, review days, minimum age 16, event times, coordinator phone) must be checked by Devatop before launch.
+- The site is an installable web app (PWA): `src/app/manifest.ts`, `public/sw.js` (caches only `/offline.html`, never personal pages), logos in `public/brand/`, tab icon `src/app/icon.png` + `favicon.ico`, install icons in `public/icons/` and the certificate mark `src/lib/pdf/brandMark.ts` are all generated from the two supplied logo files by `node tools/make-brand.mjs <devatop file> <talkam file>`.
 - The prototype has no login: anyone with the Vercel link can open `/admin`. Until auth is wired, share the link only with reviewers.

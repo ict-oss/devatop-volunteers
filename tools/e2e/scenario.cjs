@@ -2,6 +2,8 @@
 // node tools/e2e/scenario.cjs   (needs Playwright with Chromium)
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
 const BASE = process.env.E2E_BASE || "http://localhost:3150", AUTH = "http://127.0.0.1:54330";
+// E2E_EMAIL=off runs the site with the default (no emails of its own); anything else expects EMAIL_ENABLED=true on the app
+const EMAIL = process.env.E2E_EMAIL !== "off";
 const results = []; let failed = 0;
 const step = async (name, fn) => { try { const r = await fn(); results.push(["ok", name, r ?? ""]); console.log("  ok  ", name, r ?? ""); } catch (e) { failed++; results.push(["FAIL", name, e.message]); console.log("  FAIL", name, "-", e.message.split("\n")[0]); } };
 const formReset = (page) => page.waitForFunction(() => document.querySelector("#t") && document.querySelector("#t").value === "");
@@ -17,7 +19,7 @@ async function login(page, email) {
   const browser = await chromium.launch();
   const mk = async (w = 1280) => { const c = await browser.newContext({ viewport: { width: w, height: 900 } }); const p = await c.newPage(); p.setDefaultTimeout(30000); p.on("dialog", (d) => d.accept(d.type() === "prompt" ? "AI4Rights facilitator" : undefined)); p.on("pageerror", (e) => console.log("   [pageerror]", e.message.slice(0, 120))); return { c, p }; };
   const admin = await mk(), amaka = await mk(), tobi = await mk(), guard = await mk(), visitor = await mk();
-  let oppId = "", certCode = "", walkId = "", walkSecret = "";
+  let glink = "", oppId = "", certCode = "", walkId = "", walkSecret = "";
 
   console.log("\nPublic");
   await step("home and opportunities render from the database", async () => { await visitor.p.goto(BASE + "/opportunities"); await expectText(visitor.p, "open call"); });
@@ -63,7 +65,7 @@ async function login(page, email) {
     await p.getByRole("button", { name: /Send my application/ }).click(); await expectText(p, "We have your application");
   });
   await step("applicant dashboard shows the stage from the database", async () => { await amaka.p.goto(BASE + "/dashboard"); await expectText(amaka.p, "Application status"); await expectText(amaka.p, "Submitted"); });
-  await step("'application received' email was sent to the applicant", async () => { const m = await (await fetch(AUTH + "/__mails")).json(); if (!m.some((x) => x.to === "amaka@example.com" && /We got your application/.test(x.subject))) throw new Error("no email"); });
+  if (EMAIL) await step("'application received' email was sent to the applicant", async () => { const m = await (await fetch(AUTH + "/__mails")).json(); if (!m.some((x) => x.to === "amaka@example.com" && /We got your application/.test(x.subject))) throw new Error("no email"); });
   await step("opening the form again does not offer a second application", async () => { await amaka.p.goto(BASE + "/apply"); await amaka.p.getByText(/already applied|We have your application/).first().waitFor({ timeout: 15000 }); if (await amaka.p.locator("#first").count()) throw new Error("the blank form is offered again"); });
   await step("a different browser (no saved draft) is told the same", async () => { const o = await mk(); await login(o.p, "amaka@example.com"); await o.p.goto(BASE + "/apply"); await expectText(o.p, "already applied"); await o.c.close(); });
 
@@ -72,7 +74,7 @@ async function login(page, email) {
     await admin.p.goto(BASE + "/admin/applications"); await expectText(admin.p, "Amaka Obi");
     await admin.p.getByRole("button", { name: "Approve", exact: true }).first().click(); await expectText(admin.p, "marked Approved");
   });
-  await step("approval email was sent", async () => { const m = await (await fetch(AUTH + "/__mails")).json(); if (!m.some((x) => x.to === "amaka@example.com" && /You're in/.test(x.subject))) throw new Error("no approval email"); });
+  if (EMAIL) await step("approval email was sent", async () => { const m = await (await fetch(AUTH + "/__mails")).json(); if (!m.some((x) => x.to === "amaka@example.com" && /You're in/.test(x.subject))) throw new Error("no approval email"); });
   await step("audit log shows who approved, by their sign-in email", async () => { await admin.p.goto(BASE + "/admin/audit"); await expectText(admin.p, "application.approved"); await expectText(admin.p, "admin1@devatop.org"); });
 
   console.log("\nVolunteer, approved");
@@ -96,7 +98,7 @@ async function login(page, email) {
   console.log("\nAdmin: hours, certificate");
   await step("pending hours appear and are approved; thank-you email goes out", async () => {
     await admin.p.goto(BASE + "/admin/hours"); await expectText(admin.p, "Wrote 4 posts"); await admin.p.getByRole("button", { name: "Approve", exact: true }).first().click(); await expectText(admin.p, "approved");
-    await new Promise((r) => setTimeout(r, 800)); const m = await (await fetch(AUTH + "/__mails")).json(); if (!m.some((x) => x.to === "amaka@example.com" && /hours added/.test(x.subject))) throw new Error("no thank-you email");
+    if (EMAIL) { await new Promise((r) => setTimeout(r, 800)); const m = await (await fetch(AUTH + "/__mails")).json(); if (!m.some((x) => x.to === "amaka@example.com" && /hours added/.test(x.subject))) throw new Error("no thank-you email"); } else { const m = await (await fetch(AUTH + "/__mails")).json(); if (m.some((x) => x.to === "amaka@example.com")) throw new Error("an email was sent while email is off"); }
   });
   await step("admin issues a certificate for the approved hours", async () => {
     await admin.p.goto(BASE + "/admin/certificates"); await expectText(admin.p, "Amaka Obi"); await admin.p.getByRole("button", { name: "Issue certificate" }).click(); await expectText(admin.p, "issued");
@@ -129,10 +131,11 @@ async function login(page, email) {
     await p.getByRole("button", { name: /^Next/ }).click(); await p.getByRole("button", { name: "Writing", exact: true }).click(); await p.locator("fieldset", { hasText: "Where would you like to help" }).locator(".chip").first().click(); await p.getByRole("button", { name: "Weekends", exact: true }).click(); await p.getByRole("button", { name: /^Next/ }).click();
     for (const box of (await p.locator('input[type=checkbox]').all()).slice(0, 3)) await box.check();
     await p.getByRole("button", { name: /Send my application/ }).click(); await expectText(p, "must confirm before you can submit");
-    await p.fill("#gn", "Mrs Adeyemi"); await p.fill("#gc", "mum@example.com"); await p.getByRole("button", { name: "Email them a link" }).click(); await expectText(p, "We emailed");
+    await p.fill("#gn", "Mrs Adeyemi"); await p.fill("#gc", "mum@example.com"); await p.getByRole("button", { name: "Send the link to my guardian" }).click(); await expectText(p, EMAIL ? "We emailed" : "Send this link to");
+    if (!EMAIL) glink = await p.locator('input[aria-label="Link for your parent or guardian"]').inputValue();
   });
   let link = "";
-  await step("the guardian email carries a one-time link", async () => { const m = await (await fetch(AUTH + "/__mails")).json(); const g = m.find((x) => x.to === "mum@example.com"); link = g?.text.match(/https?:\/\/\S+guardian-consent\/[\w-]+/)?.[0]; if (!link) throw new Error("no link"); return link.slice(-8); });
+  await step("the guardian gets a one-time link (by email, or handed to the applicant when email is off)", async () => { if (!EMAIL) { link = glink; if (!/guardian-consent\/[\w-]+/.test(link)) throw new Error("no link on the page"); return link.slice(-8); } const m = await (await fetch(AUTH + "/__mails")).json(); const g = m.find((x) => x.to === "mum@example.com"); link = g?.text.match(/https?:\/\/\S+guardian-consent\/[\w-]+/)?.[0]; if (!link) throw new Error("no link"); return link.slice(-8); });
   await step("the guardian opens it (not signed in) and gives consent", async () => { await guard.p.goto(link.replace("http://localhost:3150", BASE)); await expectText(guard.p, "wants to volunteer"); await guard.p.getByRole("button", { name: "I give consent" }).click(); await expectText(guard.p, "Consent recorded"); });
   await step("the same link cannot be used twice", async () => { await guard.p.goto(link.replace("http://localhost:3150", BASE)); await expectText(guard.p, "Thank"); });
   await step("tobi's page notices the consent and the application can be submitted", async () => { await expectText(tobi.p, "Guardian confirmed", 20000); await tobi.p.getByRole("button", { name: /Send my application/ }).click(); await expectText(tobi.p, "We have your application"); });
@@ -143,7 +146,12 @@ async function login(page, email) {
     await admin.p.goto(BASE + "/admin/messages"); await admin.p.getByRole("tab", { name: "Settings" }).click(); await admin.p.fill("input[value*='whatsapp'], label:has-text('WhatsApp') input", "https://chat.whatsapp.com/Abc123xyz"); await admin.p.getByRole("button", { name: "Save settings" }).click(); await expectText(admin.p, "Settings saved");
     await amaka.p.goto(BASE + "/dashboard"); await expectText(amaka.p, "Join the volunteers WhatsApp group");
   });
-  await step("admin sends an email to approved volunteers", async () => {
+  if (!EMAIL) await step("with email off, Messages posts an announcement and the volunteer list has no group email", async () => {
+    await admin.p.goto(BASE + "/admin/messages"); await expectText(admin.p, "switched off"); await admin.p.fill("input[placeholder*='youth summit']", "Briefing on Saturday"); await admin.p.locator("textarea").first().fill("Hi {first_name}, the briefing is on Saturday at 9am. Please be on time.");
+    await admin.p.getByRole("button", { name: "Post announcement" }).click(); await expectText(admin.p, "Posted to the announcements board");
+    const m = await (await fetch(AUTH + "/__mails")).json(); if (m.length) throw new Error("emails were sent while email is off: " + m.length);
+  });
+  if (EMAIL) await step("admin sends an email to approved volunteers", async () => {
     await admin.p.goto(BASE + "/admin/messages"); await admin.p.fill("input[placeholder*='youth summit']", "Briefing on Saturday"); await admin.p.locator("textarea").first().fill("Hi {first_name}, the briefing is on Saturday at 9am. Please be on time."); await expectText(admin.p, "recipient");
     await admin.p.getByRole("button", { name: /^Send to \d+/ }).click(); await expectText(admin.p, "Sent to 1");
   });
@@ -181,7 +189,7 @@ async function login(page, email) {
   });
   await step("the volunteer downloads their data, then deletes their account", async () => {
     await amaka.p.goto(BASE + "/profile"); const dl = amaka.p.waitForEvent("download"); await amaka.p.getByRole("button", { name: "Download my data" }).click(); await dl;
-    await amaka.p.getByRole("button", { name: /delete my account/i }).click(); await expectText(amaka.p, "Your account and data are deleted");
+    await amaka.p.getByRole("button", { name: /delete my account/i }).click(); try { await expectText(amaka.p, "Your account and data are deleted"); } catch (e) { throw new Error((await amaka.p.locator("main").innerText()).replace(/\s+/g, " ").slice(-300)); }
   });
 
   await browser.close();

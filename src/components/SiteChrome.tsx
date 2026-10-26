@@ -15,6 +15,8 @@ const NAV = [
 export function Wordmark({ light = false }: { light?: boolean }) {
   return (
     <Link href="/" className="inline-flex items-baseline gap-2 min-h-11 items-center" aria-label="Devatop Volunteers home" data-cursor="Home">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/devatop-mark.png" alt="" width={320} height={254} className={`h-9 w-auto self-center ${light ? "bg-paper p-1" : ""}`} />
       <span className={`display text-[1.9rem] leading-none ${light ? "text-paper" : "text-ink"}`}>Devatop</span>
       <span className="bg-orange text-ink font-bold text-xs px-1.5 py-0.5 uppercase tracking-wider">Volunteers</span>
     </Link>
@@ -97,6 +99,18 @@ export function SiteFooter() {
           <Link href="/faqs" className="hover:underline">FAQs</Link>
           <Link href="/contact" className="hover:underline">Contact</Link>
           <Link href="/privacy" className="hover:underline">Privacy &amp; cookies</Link>
+        </div>
+      </div>
+      <div className="border-t border-paper/20">
+        <div className="mx-auto max-w-[1500px] px-4 md:px-8 py-6 flex flex-wrap items-center gap-4">
+          <a href="https://devatop.org" className="bg-paper p-3 block" aria-label="Devatop Centre for Africa Development">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/devatop-logo.png" alt="Devatop Centre for Africa Development: bringing positive change" width={640} height={334} className="h-20 md:h-24 w-auto" loading="lazy" />
+          </a>
+          <a href="https://devatop.org" className="bg-paper p-3 block" aria-label="Talkam: if you see am, Talkam">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/talkam-logo.png" alt="Talkam: if you see am, Talkam" width={480} height={202} className="h-20 md:h-24 w-auto" loading="lazy" />
+          </a>
         </div>
       </div>
       <div className="border-t border-paper/20">

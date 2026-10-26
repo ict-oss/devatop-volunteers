@@ -26,5 +26,11 @@ export const publicEnv = () => publicSchema.parse({
 });
 export const serverEnv = () => serverSchema.parse(process.env);
 
+/**
+ * The site's own emails (approval, reminders, guardian link, messages to a group) are OFF until this is "true" and Brevo is set up.
+ * Sign-in codes are not affected: Supabase sends those itself.
+ */
+export const emailEnabled = () => process.env.EMAIL_ENABLED === "true";
+
 /** Sign-in protection (the proxy and the server guard on /admin) is off until this is "true". Turned on at cutover, once the pages read real data. */
 export const authEnabled = () => process.env.AUTH_ENABLED === "true";

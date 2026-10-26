@@ -42,3 +42,19 @@ Vercel > Deployments > pick the last good one > Promote to Production. Setting `
 ## Pictures and clips (Admin > Site images)
 
 Uploads go to a public Supabase Storage bucket called `site-images`. You do not create it: the app creates it the first time a Super Admin uploads (it uses `SUPABASE_SERVICE_ROLE_KEY`, so that variable must be set). The bucket accepts WebP and JPEG pictures and MP4 or WebM clips up to 5 MB. Nobody can write to it from a browser with their own login; the server first checks the admin's permission, then gives a one-time upload link for one exact file name. Each replacement is a row in `site_images` (slot, file, who confirmed consent and when) and is in the audit log. "Back to original" deletes the row and the file.
+
+
+## The site's own emails are off by default
+
+`EMAIL_ENABLED` is unset, so the site sends no emails of its own: no "application received", approval, reminder, thank-you or guardian email, and no bulk email. Sign-in codes still arrive, because Supabase sends them (its built-in sender is fine for testing but limited to a few emails an hour, so set Brevo as Supabase's SMTP before a real launch).
+
+What people see instead:
+- **Under-18 applicants** get a one-time link on the application page to pass to their parent or guardian themselves (WhatsApp or text). The link works once and expires after 7 days. Because the applicant holds the link, this is weaker proof than an email to the guardian's own address; switch email on before launch if Devatop needs the stronger check.
+- **Admins** can post an announcement on Admin > Messages; volunteers see it on their dashboard. Group email, the seven templates and the sent log appear only when email is on.
+- **Reminders** are not sent. The daily job is not scheduled (`vercel.json` has no `crons`).
+
+To switch email on later: verify the sender in Brevo, set `BREVO_API_KEY` and `EMAIL_FROM`, set `EMAIL_ENABLED=true`, put this back in `vercel.json` and redeploy:
+
+```json
+{ "crons": [{ "path": "/api/cron/reminders", "schedule": "0 15 * * *" }] }
+```

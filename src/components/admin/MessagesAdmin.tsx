@@ -11,7 +11,7 @@ import { useAct } from "./useAct";
 type Tab = "send" | "templates" | "log" | "settings";
 const SAMPLE = { first_name: "Amaka", applicant_first_name: "Tobi", dashboard_link: "https://volunteer.devatop.org/dashboard", consent_link: "https://volunteer.devatop.org/guardian-consent/abc123", admin_note: "your NYSC call-up letter", opportunity_title: "Youth summit", date: "Saturday 7 November", time: "09:00", location: "Yaba, Lagos", cancel_link: "https://volunteer.devatop.org/my-opportunities", hours: 4, total_hours: 18, record_link: "https://volunteer.devatop.org/hours", reason: "", reapply_date: "20 January 2027", whatsapp_link: "https://chat.whatsapp.com/…", opportunities_link: "https://volunteer.devatop.org/opportunities" };
 
-export function MessagesAdmin({ templates, settings, log, departments }: { templates: TemplateView[]; settings: MessagingSettings; log: LogRow[]; departments: { id: string; name: string }[] }) {
+export function MessagesAdmin({ templates, settings, log, departments, emailOn }: { templates: TemplateView[]; settings: MessagingSettings; log: LogRow[]; departments: { id: string; name: string }[]; emailOn: boolean }) {
   const { admin, can } = useAdmin();
   const { act, busy, note } = useAct();
   const [tab, setTab] = useState<Tab>("send");
@@ -43,14 +43,23 @@ export function MessagesAdmin({ templates, settings, log, departments }: { templ
   // ---- settings
   const [sd, setSd] = useState(settings);
 
-  const tabs: [Tab, string][] = [["send", "Send to a group"], ["templates", "The 7 emails"], ["log", `Sent log (${log.length})`], ["settings", "Settings"]];
+  const tabs: [Tab, string][] = emailOn ? [["send", "Send to a group"], ["templates", "The 7 emails"], ["log", `Sent log (${log.length})`], ["settings", "Settings"]] : [["send", "Post an announcement"], ["settings", "Settings"]];
   return (
     <div className="grid gap-6">
       <div><h1 className="text-5xl md:text-7xl">Messages</h1><p className="mt-1 text-sm max-w-2xl">Email covers the official messages. Event reminders go out automatically the day before, at 4 pm Lagos time.</p></div>
       <div className="flex gap-2 flex-wrap" role="tablist">{tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className="chip" aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
       {note}
 
-      {tab === "send" && (
+      {!emailOn && tab === "send" && (
+        <section className="grid gap-4 max-w-2xl content-start" aria-label="Announcement">
+          <p className="border-2 border-ink p-3 text-sm">Email from the site is switched off, so a message here is posted to the volunteers&apos; announcements board (they see it when they sign in). To reach people straight away, share it in the WhatsApp group.</p>
+          <label><span className="label">Title</span><input className="input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Calls for the Enugu youth summit" /></label>
+          <label><span className="label">Message</span><textarea className="input" rows={6} value={body} onChange={(e) => setBody(e.target.value)} /></label>
+          <div><button className="btn" disabled={!canBulk || busy || subject.trim().length < 3 || body.trim().length < 15} onClick={async () => { const r = await act(sendBulkAction({ audience: { who: "approved", state: null, departmentId: null }, subject, body, announce: true }), "Posted to the announcements board."); if (r.ok) { setSubject(""); setBody("Hi {first_name},\n\n"); } }}>{busy ? "Posting…" : "Post announcement"}</button></div>
+        </section>
+      )}
+
+      {emailOn && tab === "send" && (
         <section className="grid lg:grid-cols-2 gap-8" aria-label="Bulk email">
           <div className="grid gap-4 content-start">
             <div><span className="label">Who</span><div className="flex gap-2 flex-wrap">{([["approved", "Approved volunteers"], ["applicants", "Applicants"], ["everyone", "Everyone"]] as const).map(([k, l]) => <button key={k} className="chip" aria-pressed={who === k} onClick={() => setWho(k)}>{l}</button>)}</div></div>

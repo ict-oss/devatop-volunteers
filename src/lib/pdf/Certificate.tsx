@@ -1,6 +1,7 @@
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import QRCode from "qrcode";
 import type { CertificateView } from "../services/certificates";
+import { DEVATOP_MARK } from "./brandMark";
 
 // Brand colours (CLAUDE.md design rules). Built-in PDF fonts keep the file small; the web fonts are not embedded.
 const INK = "#16130F", PAPER = "#F2EDE3", ORANGE = "#F05023";
@@ -35,7 +36,10 @@ export function CertificateDocument({ c, qr, siteHost }: { c: CertificateView; q
           <View>
             <View style={s.bar} />
             <View style={s.head}>
-              <Text style={s.title}>The Devatop Record</Text>
+              <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+                <Image src={DEVATOP_MARK} style={{ width: 46, marginRight: 12 }} />
+                <Text style={s.title}>The Devatop Record</Text>
+              </View>
               <Text style={s.edition}>Volunteer edition{"\n"}Devatop Centre for Africa Development</Text>
             </View>
             <Text style={s.certifies}>This certifies that</Text>

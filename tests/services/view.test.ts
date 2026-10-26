@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toApplication } from "../../src/lib/view/applications";
-import { ageFor } from "../../src/lib/store";
+import { ageFor } from "../../src/lib/types";
 import type { QueueRow } from "../../src/lib/services/review";
 
 const row = (o: Partial<QueueRow> = {}): QueueRow => ({

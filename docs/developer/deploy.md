@@ -20,7 +20,6 @@ Copy every line of `.env.example`. The ones people forget:
 | `NEXT_PUBLIC_SITE_URL` | the live address; used in email links and QR codes |
 | `BREVO_API_KEY` | without it no email is sent (the sent log shows "skipped") |
 | `CRON_SECRET` | 16+ random characters; Vercel Cron sends it so only Vercel can run the daily reminders |
-| `AUTH_ENABLED` | `true` turns the real system on. Unset or `false` shows the clickable prototype |
 
 ## Database
 
@@ -28,11 +27,11 @@ Copy every line of `.env.example`. The ones people forget:
 
 ## Turning the real system on (first time)
 
-See the go-live checklist in `CLAUDE.md`. In short: Supabase auth settings, migrate, seed, first two Super Admins, Vercel variables, then `AUTH_ENABLED=true` and redeploy.
+See the go-live checklist in `CLAUDE.md`. In short: Supabase auth settings, migrate, seed, first two Super Admins, Vercel variables, redeploy.
 
 ## Rolling back
 
-Vercel > Deployments > pick the last good one > Promote to Production. Setting `AUTH_ENABLED` back to `false` returns to the prototype without touching data.
+Vercel > Deployments > pick the last good one > Promote to Production.
 
 ## The daily reminder job
 

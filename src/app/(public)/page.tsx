@@ -5,13 +5,17 @@ import { Photo } from "@/components/Photo";
 import { LoopVideo } from "@/components/LoopVideo";
 import { InkArrow, ArrowRight } from "@/components/Marks";
 import { CallsBoard } from "@/components/CallsBoard";
-import { DEPARTMENTS, ROLL, STATE_HOURS, TOTALS, money } from "@/lib/data";
+import { money } from "@/lib/data";
 import { STATES } from "@/lib/nigeria-map";
+import { activeDepartments, publicNumbers, publicSettings } from "@/lib/services/public";
+import { asVisitor } from "@/lib/server/caller";
 
-const topStates = Object.entries(STATE_HOURS).sort((a, b) => b[1] - a[1]).slice(0, 5)
-  .map(([id, h]) => [STATES.find((s) => s.id === id)?.name ?? id, h] as const);
+export const dynamic = "force-dynamic"; // the numbers are live
 
-export default function Home() {
+export default async function Home() {
+  const { numbers, departments, settings } = await asVisitor(async (tx) => ({ numbers: await publicNumbers(tx), departments: await activeDepartments(tx), settings: await publicSettings(tx) }));
+  const stateName = (id: string) => STATES.find((x) => x.id === id)?.name.replace(/([a-z])([A-Z])/g, "$1 $2").replace("Federal Capital Territory", "FCT Abuja") ?? id;
+  const topStates = Object.entries(numbers.stateHours).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id, h]) => [stateName(id), h] as const);
   return (
     <>
       {/* HERO */}
@@ -54,11 +58,11 @@ export default function Home() {
       <section className="relative mt-24 md:mt-32 text-ink overflow-hidden" aria-label="Impact">
         <div data-wipe className="absolute inset-0 bg-orange" aria-hidden="true" />
         <div className="relative mx-auto max-w-[1500px] px-4 md:px-8 py-14 md:py-20">
-          <p className="font-bold uppercase tracking-widest text-sm mb-6">What action adds up to (illustrative numbers)</p>
+          <p className="font-bold uppercase tracking-widest text-sm mb-6">What action adds up to </p>
           {[
-            [TOTALS.hours, "hours given"],
-            [TOTALS.volunteers, "volunteers"],
-            [TOTALS.states, "states reached"],
+            [numbers.hours, "hours given"],
+            [numbers.volunteers, "volunteers"],
+            [numbers.states, "states reached"],
           ].map(([n, label]) => (
             <div key={label as string} className="border-t border-ink flex items-end justify-between gap-4 py-3 md:py-4">
               <span className="display text-[clamp(5rem,23vw,19rem)] leading-[0.8]" data-count={n as number}>{money(n as number)}</span>
@@ -73,6 +77,7 @@ export default function Home() {
         <div className="md:col-span-5 md:sticky md:top-8">
           <h2 className="text-[length:var(--text-display)]" data-mask>Every state is <em className="accent">next.</em></h2>
           <p className="mt-5 text-[length:var(--text-lead)] max-w-md" data-reveal>Orange means Devatop volunteers have already worked there. Point at a state to see the hours. Grey is waiting for you.</p>
+          {topStates.length === 0 && <p className="mt-8 border-t border-ink pt-3 font-bold" data-reveal>No hours are logged yet. Yours could be the first.</p>}
           <ol className="mt-8" data-reveal>
             {topStates.map(([name, h], i) => (
               <li key={name} className="flex items-baseline justify-between border-t border-ink py-3">
@@ -85,7 +90,7 @@ export default function Home() {
           <Link href="/apply" className="btn mt-4" data-magnetic data-cursor="Join">Put your state on the map <ArrowRight /></Link>
         </div>
         <div className="md:col-span-7">
-          <NigeriaMap />
+          <NigeriaMap hours={numbers.stateHours} />
         </div>
       </section>
 
@@ -106,7 +111,7 @@ export default function Home() {
         <div className="mt-12 grid md:grid-cols-4 gap-x-8">
           {[
             ["01", "Apply", "Three short steps. Progress is saved, so you can finish later."],
-            ["02", "Get approved", "We review within 7 days. Your dashboard always shows where you stand."],
+            ["02", "Get approved", `We review within ${settings.reviewDays} days. Your dashboard always shows where you stand.`],
             ["03", "Sign up in one tap", "Pick a call. Check in with a QR scan. Remote? Log your hours."],
             ["04", "Get recognised", "Hours, milestones and a certificate anyone can verify online."],
           ].map(([n, t, d]) => (
@@ -124,44 +129,25 @@ export default function Home() {
         <div className="mx-auto max-w-[1500px] px-4 md:px-8 py-16 grid md:grid-cols-12 gap-8">
           <h2 className="md:col-span-4 text-[length:var(--text-title)]" data-mask>What can your <em className="accent">hands</em> do?</h2>
           <ul className="md:col-span-8 grid sm:grid-cols-2 gap-x-8">
-            {DEPARTMENTS.filter((d) => d.status === "active").map((d) => (
+            {departments.map((d) => (
               <li key={d.id} className="border-t border-rule py-4" data-reveal>
                 <div className="display text-3xl">{d.name}</div>
-                <p className="text-sm mt-1">{d.blurb}</p>
+                <p className="text-sm mt-1">{d.description}</p>
               </li>
             ))}
           </ul>
         </div>
       </section>
 
-      {/* STORIES */}
-      <section className="mx-auto max-w-[1500px] px-4 md:px-8 py-16 md:py-24">
-        <h2 className="text-[length:var(--text-display)]" data-mask>In their <em className="accent">words.</em></h2>
-        <div className="mt-10 grid md:grid-cols-3 gap-8">
-          {[
-            ["story-1", "“I thought one Saturday would not matter. Then a student asked me a question I had not thought about in years.”", "Volunteer, Lagos (example)"],
-            ["story-2", "“Talkam gave me the words to say to a neighbour who needed help.”", "Volunteer, Kano (example)"],
-            ["story-3", "“I do my part from my phone, two hours a week. It still counts.”", "Remote volunteer (example)"],
-          ].map(([slot, q, who]) => (
-            <figure key={slot} data-reveal data-cursor="Read">
-              <Photo slot={slot} className="w-full" alt="Volunteer portrait" />
-              <blockquote className="display text-2xl md:text-3xl mt-4 leading-[1.02]" style={{ textTransform: "none", fontFamily: "var(--font-display)" }}>{q}</blockquote>
-              <figcaption className="mt-2 text-sm font-bold">{who}</figcaption>
-            </figure>
-          ))}
-        </div>
-        <p className="text-sm mt-6 opacity-70">Quotes are placeholders. Real testimonials need the volunteer's consent on record.</p>
-      </section>
-
       {/* THE ROLL — opt-in names drifting like a ticker */}
-      <section className="bg-orange text-ink overflow-hidden border-y border-ink py-6" aria-label="The Roll: volunteers who chose to be listed">
+      {numbers.roll.length > 0 && <section className="bg-orange text-ink overflow-hidden border-y border-ink py-6" aria-label="The Roll: volunteers who chose to be listed">
         <div className="px-4 md:px-8 mx-auto max-w-[1500px] mb-2 font-bold uppercase tracking-widest text-sm">The Roll — volunteers who said yes to being listed</div>
         <div className="ticker" data-ticker="70" aria-hidden="true">
-          {[...ROLL, ...ROLL].map((n, i) => (
+          {[...numbers.roll, ...numbers.roll].map((n, i) => (
             <span key={i} className="display text-[clamp(3.5rem,10vw,8rem)] whitespace-nowrap pr-10">{n} <span className="opacity-40">/</span></span>
           ))}
         </div>
-      </section>
+      </section>}
 
       {/* FINAL CTA */}
       <section className="mx-auto max-w-[1500px] px-4 md:px-8 py-24 md:py-32 text-center md:text-left">

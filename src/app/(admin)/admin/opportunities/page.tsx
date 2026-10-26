@@ -1,17 +1,14 @@
 import { redirect } from "next/navigation";
-import { authEnabled } from "@/lib/env";
 import { adminCaller, asCaller } from "@/lib/server/caller";
 
 export const dynamic = "force-dynamic";
 import { OpportunitiesAdmin } from "@/components/admin/OpportunitiesAdmin";
-import { OpportunitiesProto } from "./OpportunitiesProto";
 import { adminOpportunities } from "@/lib/services/opportunities";
 import { activeDepartments, allProgrammes } from "@/lib/services/public";
 
 export const metadata = { title: "Opportunities" };
 
 export default async function Page() {
-  if (!authEnabled()) return <OpportunitiesProto />;
   const me = await adminCaller("opportunities.edit"); // rule 1
   if (!me) redirect("/admin/not-allowed");
   const d = await asCaller(me.caller, async (tx) => ({ opps: await adminOpportunities(tx), programmes: await allProgrammes(tx), departments: await activeDepartments(tx) }));

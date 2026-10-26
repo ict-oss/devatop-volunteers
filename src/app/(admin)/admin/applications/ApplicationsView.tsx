@@ -1,11 +1,10 @@
 "use client";
 import { Fragment, useMemo, useState } from "react";
-import { DEPARTMENTS, STATE_NAMES, fmtDate } from "@/lib/data";
-import { KEYS, SEED_APPS, ageFor, useLocal, type Application, type Stage } from "@/lib/store";
+import { STATE_NAMES, fmtDate } from "@/lib/data";
+import { ageFor, type Application, type Stage } from "@/lib/types";
 import { STAGE_TO_DB } from "@/lib/view/applications";
 import { decideApplicationsAction } from "@/app/actions/review";
 import { useAdmin } from "@/lib/useAdmin";
-import { useComms } from "@/lib/useComms";
 
 /** Rule 6, mirrored from the database constraint: an under-18 cannot be approved without a verified guardian consent. */
 function approvalBlocker(a: Application): string | null {
@@ -15,16 +14,12 @@ function approvalBlocker(a: Application): string | null {
 }
 const PENDING: Stage[] = ["Submitted", "Under review", "Interview", "Needs info"];
 
-export type ApplicationsProps = { real: boolean; initial: Application[]; departments: { id: string; name: string }[] };
+export type ApplicationsProps = { initial: Application[]; departments: { id: string; name: string }[] };
 
-export function ApplicationsView({ real, initial, departments }: ApplicationsProps) {
+export function ApplicationsView({ initial, departments }: ApplicationsProps) {
   const deptName = (id: string) => departments.find((d) => d.id === id)?.name ?? id;
-  const { admin, can, inScope, log } = useAdmin();
-  const { send } = useComms();
-  const [protoApps, setProtoApps] = useLocal<Application[]>(KEYS.apps, SEED_APPS);
-  const [realApps, setRealApps] = useState<Application[]>(initial);
-  const apps = real ? realApps : protoApps;
-  const setApps = real ? setRealApps : setProtoApps;
+  const { admin, can, inScope } = useAdmin();
+  const [apps, setApps] = useState<Application[]>(initial);
   const [busy, setBusy] = useState(false);
   const [state, setState] = useState(""); const [dept, setDept] = useState(""); const [q, setQ] = useState("");
   const [sel, setSel] = useState<string[]>([]); const [open, setOpen] = useState<string | null>(null); const [msg, setMsg] = useState("");
@@ -34,7 +29,7 @@ export function ApplicationsView({ real, initial, departments }: ApplicationsPro
       (!q || `${a.first} ${a.last}`.toLowerCase().includes(q.toLowerCase())))
     .sort((x, y) => +new Date(x.submittedAt) - +new Date(y.submittedAt)), [apps, state, dept, q, inScope]);
 
-  const decideReal = async (ids: string[], stage: Stage, note?: string) => {
+  const decide = async (ids: string[], stage: Stage, note?: string) => {
     if (!can("applications.decide") || busy) return;
     setBusy(true);
     const r = await decideApplicationsAction({ ids, decision: STAGE_TO_DB[stage as keyof typeof STAGE_TO_DB], note });
@@ -44,33 +39,8 @@ export function ApplicationsView({ real, initial, departments }: ApplicationsPro
     if (stage === "Approved" || stage === "Rejected") setApps((p) => p.filter((a) => !ids.includes(a.id) || refusedIds.has(a.id)));
     else setApps((p) => p.map((a) => (ids.includes(a.id) && !refusedIds.has(a.id) ? { ...a, stage, note } : a)));
     setSel([]);
-    setMsg(r.data.refused.length ? `${r.data.done} done. Not done: ${r.data.refused.map((x) => x.message).filter((m, i, l) => l.indexOf(m) === i).join(" ")}` : `${r.data.done} application${r.data.done === 1 ? "" : "s"} marked ${stage}. Email sent.`);
+    setMsg(r.data.refused.length ? `${r.data.done} done. Not done: ${r.data.refused.map((x) => x.message).filter((m, i, l) => l.indexOf(m) === i).join(" ")}` : `${r.data.done} application${r.data.done === 1 ? "" : "s"} marked ${stage}.`);
     setTimeout(() => setMsg(""), 6000);
-  };
-  const decide = (ids: string[], stage: Stage, note?: string) => {
-    if (real) { void decideReal(ids, stage, note); return; }
-    if (!can("applications.decide")) return;
-    const blocked: string[] = [];
-    setApps((p) => p.map((a) => {
-      if (!ids.includes(a.id)) return a;
-      if (stage === "Approved") {
-        const b = approvalBlocker(a);
-        if (b || ((ageFor(a) ?? 0) < 18 && !can("applications.approveMinor"))) { blocked.push(a.first); return a; }
-      }
-      return { ...a, stage, note: note ?? a.note };
-    }));
-    ids.forEach((id) => {
-      const a = apps.find((x) => x.id === id);
-      if (!a || (stage === "Approved" && (approvalBlocker(a) || ((ageFor(a) ?? 0) < 18 && !can("applications.approveMinor"))))) return;
-      log(`${stage}`, `${a.first} ${a.last}`);
-      const reapply = new Date(Date.now() + 90 * 864e5).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-      if (stage === "Approved") send("approved", a.email, a.first, { first_name: a.first }, admin.name);
-      else if (stage === "Needs info") send("needs_info", a.email, a.first, { first_name: a.first, admin_note: note ?? "" }, admin.name);
-      else if (stage === "Rejected") send("not_approved", a.email, a.first, { first_name: a.first, reason: note ? `: ${note}` : "", reapply_date: reapply }, admin.name);
-    });
-    setSel([]);
-    setMsg(blocked.length ? `Not approved: ${blocked.join(", ")}. Under-18 applicants need verified guardian consent first.` : `${ids.length} application${ids.length > 1 ? "s" : ""} marked ${stage}. Email sent.`);
-    setTimeout(() => setMsg(""), 4500);
   };
   const reject = (a: Application) => { const reason = prompt(`Reject ${a.first} ${a.last}? Optional short reason (included in the email):`, ""); if (reason !== null) decide([a.id], "Rejected", reason || undefined); };
   const more = (a: Application) => { const note = prompt(`What do you need from ${a.first}? This goes in the email:`, ""); if (note) decide([a.id], "Needs info", note); };
@@ -83,11 +53,10 @@ export function ApplicationsView({ real, initial, departments }: ApplicationsPro
     <div className="grid gap-6">
       <div><h1 className="text-5xl md:text-7xl">Applications</h1><p className="mt-1 text-sm">Pending, oldest first. <a href="/guides" className="underline">How does this work?</a></p></div>
 
-      <div className="grid sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
+      <div className="grid sm:grid-cols-3 gap-3 items-end">
         <label><span className="label">Search</span><input className="input" placeholder="Name" value={q} onChange={(e) => setQ(e.target.value)} /></label>
         <label><span className="label">State</span><select className="input" value={state} onChange={(e) => setState(e.target.value)}><option value="">All</option>{STATE_NAMES.map((s) => <option key={s}>{s}</option>)}</select></label>
         <label><span className="label">Programme / department</span><select className="input" value={dept} onChange={(e) => setDept(e.target.value)}><option value="">All</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
-        <button className="btn btn-ghost" disabled={!can("reports.export")} onClick={() => { log("Exported", "applications (totals only)"); setMsg("Export started. Totals only; personal data export is Super Admin only."); }}>Export</button>
       </div>
 
       {sel.length > 0 && (

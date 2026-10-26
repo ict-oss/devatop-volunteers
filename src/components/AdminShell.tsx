@@ -2,9 +2,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { DEMO_ADMINS, ROLE_LABEL, type Action, type Admin } from "@/lib/permissions";
+import { ROLE_LABEL, type Action, type Admin } from "@/lib/permissions";
 import { RealAdminContext, useAdmin } from "@/lib/useAdmin";
-import { resetDemo } from "@/lib/store";
 import { supabaseBrowser } from "@/lib/auth/supabase-browser";
 import { ADMIN_IDLE_MS } from "@/lib/auth/routing";
 
@@ -21,31 +20,29 @@ const NAV: { label: string; href: string; need: Action }[] = [
   { label: "Messages", href: "/admin/messages", need: "email.bulk" },
   { label: "Chat", href: "/admin/chat", need: "overview" },
   { label: "Departments", href: "/admin/departments", need: "departments.assign" },
+  { label: "Admins", href: "/admin/admins", need: "admins.manage" },
   { label: "Site images", href: "/admin/images", need: "settings.edit" },
   { label: "Audit log", href: "/admin/audit", need: "audit.see" },
 ];
 
-/** `realAuth` is true once AUTH_ENABLED: idle and sign-out then end the real session. Until then the role switcher still drives the prototype. */
-export function AdminShell({ children, realAuth = false, realAdmin = null }: { children: React.ReactNode; realAuth?: boolean; realAdmin?: Admin | null }) {
-  return <RealAdminContext.Provider value={realAdmin}><ShellInner realAuth={realAuth}>{children}</ShellInner></RealAdminContext.Provider>;
+/** Idle and sign-out end the real session. */
+export function AdminShell({ children, realAdmin }: { children: React.ReactNode; realAdmin: Admin }) {
+  return <RealAdminContext.Provider value={realAdmin}><ShellInner>{children}</ShellInner></RealAdminContext.Provider>;
 }
 
-function ShellInner({ children, realAuth }: { children: React.ReactNode; realAuth: boolean }) {
+function ShellInner({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
-  const { admin, idx, setIdx, can } = useAdmin();
+  const { admin, can } = useAdmin();
 
   // sessions in the admin section end after 30 minutes idle (the proxy enforces the same limit on the server)
   useEffect(() => {
-    const expire = async () => {
-      if (realAuth) { await supabaseBrowser().auth.signOut(); router.push("/login?reason=idle"); }
-      else router.push("/?session=expired");
-    };
+    const expire = async () => { await supabaseBrowser().auth.signOut(); router.push("/login?reason=idle"); };
     let t = setTimeout(expire, ADMIN_IDLE_MS);
     const bump = () => { clearTimeout(t); t = setTimeout(expire, ADMIN_IDLE_MS); };
     window.addEventListener("pointerdown", bump); window.addEventListener("keydown", bump);
     return () => { clearTimeout(t); window.removeEventListener("pointerdown", bump); window.removeEventListener("keydown", bump); };
-  }, [router, realAuth]);
+  }, [router]);
 
   const current = NAV.find((n) => (n.href === "/admin" ? path === "/admin" : path.startsWith(n.href)));
   const allowed = !current || can(current.need);
@@ -54,13 +51,7 @@ function ShellInner({ children, realAuth }: { children: React.ReactNode; realAut
     <div className="min-h-screen bg-paper md:grid md:grid-cols-[15rem_1fr]">
       <aside className="print:hidden bg-ink text-paper md:min-h-screen md:sticky md:top-0 md:h-screen p-4 flex flex-col gap-5">
         <div><Link href="/" className="display text-3xl">Devatop</Link><span className="ml-2 bg-orange text-ink text-xs font-bold px-1.5 py-0.5 uppercase">Admin</span></div>
-        {realAuth ? <p className="text-xs opacity-80">Signed in · two-factor on · session ends after 30 min idle</p> : <div>
-          <label htmlFor="role" className="text-xs uppercase tracking-widest font-bold opacity-70">Viewing as (prototype)</label>
-          <select id="role" className="mt-1 w-full bg-paper text-ink p-2 font-bold border-2 border-paper min-h-11" value={idx} onChange={(e) => setIdx(Number(e.target.value))}>
-            {DEMO_ADMINS.map((a, i) => <option key={i} value={i}>{ROLE_LABEL[a.role]}{a.scope ? ` · ${a.scope}` : ""}</option>)}
-          </select>
-          <p className="text-xs mt-2 opacity-80">Two-factor sign-in on · session ends after 30 min idle</p>
-        </div>}
+        <p className="text-xs opacity-80">Signed in · two-factor on · session ends after 30 min idle</p>
         <nav aria-label="Admin" className="flex md:grid gap-1 overflow-x-auto">
           {NAV.filter((n) => can(n.need)).map((n) => {
             const on = n.href === "/admin" ? path === "/admin" : path.startsWith(n.href);
@@ -68,8 +59,7 @@ function ShellInner({ children, realAuth }: { children: React.ReactNode; realAut
           })}
         </nav>
         <div className="mt-auto grid gap-2 text-sm">
-          {realAuth && <button className="text-left underline opacity-80" onClick={async () => { await supabaseBrowser().auth.signOut(); window.location.assign("/login"); }}>Sign out</button>}
-          {!realAuth && <button className="text-left underline opacity-80" onClick={() => { if (confirm("Reset all prototype data in this browser?")) resetDemo(); }}>Reset demo data</button>}
+          <button className="text-left underline opacity-80" onClick={async () => { await supabaseBrowser().auth.signOut(); window.location.assign("/login"); }}>Sign out</button>
           <Link href="/" className="underline opacity-80">Public site</Link>
         </div>
       </aside>

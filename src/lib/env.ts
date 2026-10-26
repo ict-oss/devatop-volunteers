@@ -32,5 +32,3 @@ export const serverEnv = () => serverSchema.parse(process.env);
  */
 export const emailEnabled = () => process.env.EMAIL_ENABLED === "true";
 
-/** Sign-in protection (the proxy and the server guard on /admin) is off until this is "true". Turned on at cutover, once the pages read real data. */
-export const authEnabled = () => process.env.AUTH_ENABLED === "true";

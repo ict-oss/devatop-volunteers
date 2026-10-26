@@ -1,6 +1,4 @@
-import { GuardianProto } from "./GuardianProto";
 import { GuardianButtons } from "./GuardianButtons";
-import { authEnabled } from "@/lib/env";
 import { guardianLinkInfo } from "@/lib/services/applications";
 import { asVisitor } from "@/lib/server/caller";
 
@@ -12,7 +10,6 @@ const Shell = ({ children }: { children: React.ReactNode }) => <div className="m
 // Opened from the email sent to a parent or guardian. The guardian is not signed in: the secret in the link is the proof,
 // the database stores only its hash, the link works for 7 days, and the page shows only the minimum.
 export default async function GuardianConsentPage({ params }: { params: Promise<{ token: string }> }) {
-  if (!authEnabled()) return <GuardianProto />;
   const { token } = await params;
   const info = token.length >= 20 && token.length <= 200 ? await asVisitor((tx) => guardianLinkInfo(tx, token)) : null;
 

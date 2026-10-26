@@ -16,9 +16,9 @@ browser → `src/proxy.ts` (session refresh, idle timeout) → page (server comp
 
 `db()` / `trusted()` is the database owner and **bypasses** row-level security: only for sending email, the cron job, the audit log for exports, and reading admin sign-in emails. Never `await` a trusted query inside an `asCaller` callback.
 
-## The prototype and the real system
+## One system, no prototype
 
-Both exist in the same code. `authEnabled()` (`AUTH_ENABLED=true`) chooses. The prototype components (`*Proto.tsx`) read browser storage; the real ones read props from the server or `LiveContext`. Once the real system is live and trusted, delete the `*Proto.tsx` files, `src/lib/store.ts` and the sample data in `src/lib/data.ts`.
+Every screen reads and writes the database. The earlier clickable prototype (sample data in browser storage, `*Proto.tsx`, `store.ts`) has been removed. Screens read props from the server or `LiveContext` (`src/lib/live.tsx`, filled by `src/lib/server/live.ts`). The only things kept in the browser are the cookie choice and an unfinished application form (`src/lib/useLocal.ts`).
 
 ## Auth
 

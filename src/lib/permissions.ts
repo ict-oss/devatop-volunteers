@@ -43,12 +43,3 @@ export function inScope(admin: Admin, rec: { state?: string; departments?: strin
   if (admin.role === "department") return !!rec.departments?.includes(admin.scope ?? "");
   return true; // super/programme/coordinator/viewer: see all in this prototype (programme scope applied server-side later)
 }
-
-export const DEMO_ADMINS: Admin[] = [
-  { name: "Olukayode I.", role: "super" },
-  { name: "Programme Manager", role: "programme", scope: "AI4Rights" },
-  { name: "Coordinator", role: "coordinator" },
-  { name: "Lagos State Lead", role: "state", scope: "Lagos" },
-  { name: "ICT Dept Lead", role: "department", scope: "ict" },
-  { name: "Viewer", role: "viewer" },
-];

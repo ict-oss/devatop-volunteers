@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { MAP_H, MAP_W, STATES } from "@/lib/nigeria-map";
-import { STATE_HOURS, money } from "@/lib/data";
+import { money } from "@/lib/data";
 import { photoSrc } from "@/lib/images";
 import { prefersReducedMotion } from "@/lib/motion";
 import { usePhoto } from "./Photo";
@@ -14,7 +14,7 @@ gsap.registerPlugin(ScrollTrigger);
  * Nigeria map filled with volunteer photos (slot: map-fill). States where volunteers have worked
  * burn orange one after another as the map scrolls into view; pointing at a state shows its hours.
  */
-export function NigeriaMap() {
+export function NigeriaMap({ hours: STATE_HOURS }: { hours: Record<string, number> }) {
   const root = useRef<SVGSVGElement>(null);
   const [active, setActive] = useState<string | null>(null);
   const has = usePhoto("map-fill");

@@ -33,6 +33,11 @@ const FRIENDLY: Record<string, string> = {
   department_has_history: "This department has history (members, calls or guides), so it cannot be deleted. Archive or merge it instead.",
   duplicate_name: "A department with that name already exists.",
   no_approved_hours: "This volunteer has no approved hours yet.",
+  at_least_two_super_admins: "Devatop must always have at least two Super Admins, so this change is not allowed. Add another Super Admin first.",
+  role_needs_scope: "This role needs a state, programme or department. Pick one.",
+  not_signed_up: "That person has not signed in yet. Ask them to sign in once with that email address, then add them here.",
+  own_admin_role: "You cannot change or remove your own admin role. Ask another Super Admin.",
+  bad_status: "That status cannot be set here.",
   too_big: "That file is too big. Pick a smaller one.",
   certificate_needs_approved_hours: "Certificates can only be issued for approved hours.",
 };
@@ -58,6 +63,8 @@ const RULES: [RegExp, string][] = [
   [/department_has_active_members/, "department_has_active_members"], [/department_has_history/, "department_has_history"],
   [/departments_name_key|duplicate key value violates unique constraint "departments/, "duplicate_name"],
   [/only_active_volunteers/, "only_active_volunteers"],
+  [/at_least_two_super_admins/, "at_least_two_super_admins"],
+  [/state_lead_needs_state|programme_manager_needs_programme|department_lead_needs_department/, "role_needs_scope"],
   [/permission denied|not allowed|42501|only a reviewer|only an admin|only a moderator|row-level security/i, "forbidden"],
 ];
 /** Turn a database rule violation into an AppError; anything unexpected is re-thrown untouched (and never shown to the person). */

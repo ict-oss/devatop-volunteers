@@ -1,6 +1,6 @@
 /**
  * Local end-to-end harness (dev only). Runs the REAL migrations and seed in an in-memory Postgres (PGlite, served over a socket),
- * plus a tiny fake of Supabase Auth and of Brevo, so the whole app can be driven in a browser with AUTH_ENABLED=true and no accounts.
+ * plus a tiny fake of Supabase Auth and of Brevo, so the whole app can be driven in a browser.
  *   npx tsx tools/e2e/harness.ts          (keeps running; prints the environment the app needs)
  * The code "123456" is accepted for email codes and authenticator codes. Emails are captured at GET /__mails.
  */

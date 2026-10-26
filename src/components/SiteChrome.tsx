@@ -103,13 +103,13 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-paper/20">
         <div className="mx-auto max-w-[1500px] px-4 md:px-8 py-6 flex flex-wrap items-center gap-4">
-          <a href="https://devatop.org" className="bg-paper p-3 block" aria-label="Devatop Centre for Africa Development">
+          <a href="https://devatop.org" className="bg-paper p-2 block" aria-label="Devatop Centre for Africa Development">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/devatop-logo.png" alt="Devatop Centre for Africa Development: bringing positive change" width={640} height={334} className="h-20 md:h-24 w-auto" loading="lazy" />
+            <img src="/brand/devatop-logo.png" alt="Devatop Centre for Africa Development: bringing positive change" width={640} height={334} className="h-10 md:h-12 w-auto" loading="lazy" />
           </a>
-          <a href="https://devatop.org" className="bg-paper p-3 block" aria-label="Talkam: if you see am, Talkam">
+          <a href="https://devatop.org" className="bg-paper p-2 block" aria-label="Talkam: if you see am, Talkam">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/talkam-logo.png" alt="Talkam: if you see am, Talkam" width={480} height={202} className="h-20 md:h-24 w-auto" loading="lazy" />
+            <img src="/brand/talkam-logo.png" alt="Talkam: if you see am, Talkam" width={480} height={202} className="h-10 md:h-12 w-auto" loading="lazy" />
           </a>
         </div>
       </div>

@@ -88,7 +88,7 @@ export function SiteFooter() {
           <div className="font-bold uppercase tracking-wider text-sm text-orange">Volunteers</div>
           <Link href="/opportunities" className="hover:underline">Opportunities</Link>
           <Link href="/apply" className="hover:underline">Apply</Link>
-          <Link href="/verify/DVT-7K2M-9QXA" className="hover:underline">Verify a certificate</Link>
+          <Link href="/verify" className="hover:underline">Verify a certificate</Link>
           <Link href="/dashboard" className="hover:underline">Volunteer log in</Link>
           <Link href="/admin" className="hover:underline">Admin</Link>
         </div>

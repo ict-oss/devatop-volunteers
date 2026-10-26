@@ -30,7 +30,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 1. Replace `src/lib/store.ts` / prototype components once the real system is live (delete `*Proto.tsx`, `useLocal` use, `data.ts` sample data).
 2. Phase 2 and later: department-lead "Team Lead" volunteer role screens, join-another-department requests, tags and bulk actions, vetting notes, documents upload, training completion screens, PWA, WhatsApp Business API, email to volunteers when a department changes.
 3. Real photos and clips uploaded through Admin > Site images (replace stand-ins), a tested backup restore (record the date in `docs/developer/runbook.md`), and fill in `docs/developer/handover.md` with the real account owners.
-4. Facts marked "(confirm)" must be checked by Devatop (sender address, review days, minimum age 16, department list, event times, coordinator phone, safeguarding renewal period).
+4. Facts marked "(confirm)" must be checked by Devatop: the full question list with where to change each answer is `docs/confirm-with-devatop.md`.
 
 ## Stack
 - Next.js 16 (App Router), TypeScript strict. Note: Next 16 calls middleware "proxy" (`src/proxy.ts`, exported `proxy`).
@@ -88,4 +88,5 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - Windows 260-character path limit: keep the repo in a short path (for example `C:\dv\devatop-volunteers`); deep folders break git and esbuild.
 - Use the Supabase **Session pooler** connection string for `DATABASE_URL` (the direct address needs IPv6).
 - Facts marked "(confirm)" in the copy (sender address, review days, minimum age 16, event times, coordinator phone) must be checked by Devatop before launch.
+- The site is an installable web app (PWA): `src/app/manifest.ts`, `public/sw.js` (caches only `/offline.html`, never personal pages), icons in `public/icons/` (stand-ins from `node tools/make-icons.mjs`; replace with the logo).
 - The prototype has no login: anyone with the Vercel link can open `/admin`. Until auth is wired, share the link only with reviewers.

@@ -10,7 +10,7 @@ const body = Atkinson_Hyperlegible_Next({ subsets: ["latin"], weight: ["400", "7
 
 export const metadata: Metadata = {
   title: { default: "Devatop Volunteers — Volunteers are known by action", template: "%s · Devatop Volunteers" },
-  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
+  icons: { apple: "/icons/apple-touch-icon.png" }, // the browser tab icon is src/app/icon.png and favicon.ico
   appleWebApp: { capable: true, title: "Volunteers", statusBarStyle: "default" },
   description: "Join the young people fighting human trafficking, gender-based violence and other abuses across Nigeria. Bring your time, your skill, your voice.",
 };

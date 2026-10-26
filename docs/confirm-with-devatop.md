@@ -17,4 +17,4 @@ Everything below is a guess made while building. Each needs a yes or a correctio
 | 11 | Talkam link used in emails. | `https://devatop.org` | Admin > Messages > Settings |
 | 12 | Under-18 guardian consent: is a link passed on by the applicant acceptable, or must it be emailed to the guardian's own address? | Applicant passes the link on (email is off) | Switch on email (see `docs/developer/deploy.md`) for the stronger check |
 | 13 | Real, consented photos and short clips (adults only, no identifiable children or survivors). | Stand-in artwork | Admin > Site images |
-| 14 | Logos: the Devatop and Talkam logo files, and where each should appear. | Not on the site yet | Add the files to `public/brand/` |
+| 14 | Logos: are the two logo files supplied the approved versions? A transparent-background original (SVG or high-resolution PNG) would look sharper than the JPEGs we received. | Devatop logo in the header, footer, browser tab, phone install icon and certificates; Talkam logo in the footer | `node tools/make-brand.mjs <devatop file> <talkam file>` rebuilds every logo and icon |

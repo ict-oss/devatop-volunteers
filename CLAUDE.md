@@ -88,5 +88,5 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - Windows 260-character path limit: keep the repo in a short path (for example `C:\dv\devatop-volunteers`); deep folders break git and esbuild.
 - Use the Supabase **Session pooler** connection string for `DATABASE_URL` (the direct address needs IPv6).
 - Facts marked "(confirm)" in the copy (sender address, review days, minimum age 16, event times, coordinator phone) must be checked by Devatop before launch.
-- The site is an installable web app (PWA): `src/app/manifest.ts`, `public/sw.js` (caches only `/offline.html`, never personal pages), icons in `public/icons/` (stand-ins from `node tools/make-icons.mjs`; replace with the logo).
+- The site is an installable web app (PWA): `src/app/manifest.ts`, `public/sw.js` (caches only `/offline.html`, never personal pages), logos in `public/brand/`, tab icon `src/app/icon.png` + `favicon.ico`, install icons in `public/icons/` and the certificate mark `src/lib/pdf/brandMark.ts` are all generated from the two supplied logo files by `node tools/make-brand.mjs <devatop file> <talkam file>`.
 - The prototype has no login: anyone with the Vercel link can open `/admin`. Until auth is wired, share the link only with reviewers.

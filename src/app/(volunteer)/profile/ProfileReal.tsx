@@ -14,6 +14,8 @@ export function ProfileReal() {
   const [phone, setPhone] = useState(me?.phone ?? ""); const [state, setState] = useState(me?.state ?? ""); const [availability, setAvailability] = useState(me?.availability ?? "");
   const [skills, setSkills] = useState<string[]>(me?.skills ?? []);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null); const [busy, setBusy] = useState(false); const [gone, setGone] = useState(false);
+  // after deleting, the refreshed page has no profile any more: keep showing the confirmation, not "Nothing here yet"
+  if (!me && gone) return <div className="border-2 border-ink p-4" role="status"><b>Done.</b> Your account and data are deleted, you will get no more messages and you are off the Roll. <Link className="underline" href="/">Back to the public site</Link></div>;
   if (!me) return <div><h1 className="text-[length:var(--text-display)]">My <em className="accent">profile</em></h1><p className="mt-4">Nothing here yet. <Link className="underline font-bold" href="/apply">Apply to volunteer.</Link></p></div>;
 
   const flash = (ok: boolean, text: string) => { setMsg({ ok, text }); setTimeout(() => setMsg(null), 4000); };
@@ -54,7 +56,7 @@ export function ProfileReal() {
       <section className="border-t border-ink pt-6 grid gap-4">
         <h2 className="text-3xl md:text-4xl">Your data, your call</h2>
         <div className="flex gap-3 flex-wrap"><button className="btn btn-ghost" onClick={download}>Download my data</button></div>
-        {gone ? <div className="border-2 border-ink p-4" role="status"><b>Done.</b> Your account and data are deleted, emails have stopped and you are off the Roll. <Link className="underline" href="/">Back to the public site</Link></div> : (
+        {gone ? <div className="border-2 border-ink p-4" role="status"><b>Done.</b> Your account and data are deleted, you will get no more messages and you are off the Roll. <Link className="underline" href="/">Back to the public site</Link></div> : (
           <div className="border-2 border-alert p-4 grid gap-3">
             <b>Withdraw consent and delete my account</b>
             <p className="text-sm">You can do this any time. We stop all emails and remove you from the public Roll straight away. Your hours remain in anonymised totals so reports stay accurate. This can&apos;t be undone.</p>

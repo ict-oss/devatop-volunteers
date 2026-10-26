@@ -42,6 +42,7 @@ export function ApplyForm({ real, departments, minAge, reviewDays, already = fal
   const [gOtp, setGOtp] = useState("");
   const [busy, setBusy] = useState(false);
   const [gRefused, setGRefused] = useState(false);
+  const [gLink, setGLink] = useState(""); // set when the site does not email the guardian: the applicant passes the link on
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const { send } = useComms();
@@ -154,7 +155,7 @@ export function ApplyForm({ real, departments, minAge, reviewDays, already = fal
     setBusy(true); setErr({});
     const r = await requestGuardianAction({ application: payload(), guardian: { name: d.gName, email: d.gContact } });
     setBusy(false);
-    if (r.ok) { setGRefused(false); setD((p) => ({ ...p, gSent: true })); } else setErr({ guardian: r.message });
+    if (r.ok) { setGRefused(false); setGLink(r.data.link ?? ""); setD((p) => ({ ...p, gSent: true })); } else setErr({ guardian: r.message });
   };
   const sendGuardian = () => {
     const token = newId() + newId();
@@ -297,8 +298,17 @@ export function ApplyForm({ real, departments, minAge, reviewDays, already = fal
                 {d.gVerified ? <span className="stamp stamp-ok inline-flex items-center gap-1 self-start"><Check className="w-4 h-4" /> Guardian confirmed</span> : (
                   real ? (
                     <div className="flex gap-2 flex-wrap items-start">
-                      <button type="button" className="btn btn-sm btn-ghost" disabled={busy || !d.gName.trim() || !/^\S+@\S+\.\S+$/.test(d.gContact.trim())} onClick={sendGuardianReal}>{d.gSent ? "Send the link again" : "Email them a link"}</button>
-                      {d.gSent && <p className="why w-full">{gRefused ? <b className="text-alert">Your guardian declined. You can&apos;t submit this application.</b> : <>We emailed <b>{d.gContact}</b>. This page updates by itself when they answer. The link works for 7 days.</>}</p>}
+                      <button type="button" className="btn btn-sm btn-ghost" disabled={busy || !d.gName.trim() || !/^\S+@\S+\.\S+$/.test(d.gContact.trim())} onClick={sendGuardianReal}>{d.gSent ? "Get a new link" : "Send the link to my guardian"}</button>
+                      {d.gSent && <p className="why w-full">{gRefused ? <b className="text-alert">Your guardian declined. You can&apos;t submit this application.</b> : gLink ? <>Send this link to <b>{d.gName}</b> yourself, by WhatsApp or text. It works once for 7 days, and this page updates by itself when they answer.</> : <>We emailed <b>{d.gContact}</b>. This page updates by itself when they answer. The link works for 7 days.</>}</p>}
+                      {d.gSent && gLink && !gRefused && (
+                        <div className="w-full grid gap-2">
+                          <input className="input" readOnly value={gLink} aria-label="Link for your parent or guardian" onFocus={(e) => e.currentTarget.select()} />
+                          <div className="flex gap-2 flex-wrap">
+                            <button type="button" className="btn btn-sm btn-ghost" onClick={() => navigator.clipboard?.writeText(gLink)}>Copy the link</button>
+                            <a className="btn btn-sm btn-ghost" target="_blank" rel="noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`Hello, I am applying to volunteer with Devatop and I need your permission because I am under 18. Please open this link: ${gLink}`)}`}>Send on WhatsApp</a>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                   <div className="flex gap-2 flex-wrap items-start">

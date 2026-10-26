@@ -3,6 +3,7 @@ import { z } from "zod";
 import { DEFAULT_TEMPLATES, isGroupLink, renderEmail, type TemplateId } from "../emails";
 import { sendViaBrevo, type Sender } from "../email/send";
 import { loadSettings } from "../email/notify";
+import { emailEnabled } from "../env";
 import { emailLog } from "../db/schema";
 import { AppError, guard, rowsOf, type Db } from "./db";
 
@@ -85,15 +86,16 @@ export const bulkSchema = z.object({ audience: audienceSchema, subject: z.string
 export type BulkInput = z.infer<typeof bulkSchema>;
 
 /** Record the send (who sent it, the filter used, how many; never the recipients), and post it to the announcements board if asked. */
-export async function recordMessage(db: Db, senderId: string, input: BulkInput, count: number): Promise<void> {
+export async function recordMessage(db: Db, senderId: string, input: BulkInput, count: number, emailed = true): Promise<void> {
   await guard(async () => {
-    await db.execute(sql`insert into messages (kind, subject, body, audience, recipient_count, sent_by) values ('bulk_email', ${input.subject}, ${input.body}, ${JSON.stringify(input.audience)}::jsonb, ${count}, ${senderId}::uuid)`);
+    if (emailed) await db.execute(sql`insert into messages (kind, subject, body, audience, recipient_count, sent_by) values ('bulk_email', ${input.subject}, ${input.body}, ${JSON.stringify(input.audience)}::jsonb, ${count}, ${senderId}::uuid)`);
     if (input.announce) await db.execute(sql`insert into messages (kind, subject, body, audience, recipient_count, sent_by) values ('announcement', ${input.subject}, ${input.body.replace(/\{first_name\}/g, "there")}, '{}'::jsonb, 0, ${senderId}::uuid)`);
   });
 }
 
 /** Sends one custom email per recipient through the trusted connection. Never throws; returns counts only. */
 export async function deliverBulk(owner: Db, recipients: Recipient[], subject: string, body: string, send: Sender = sendViaBrevo): Promise<{ sent: number; failed: number; skipped: number }> {
+  if (!emailEnabled() && send === sendViaBrevo) return { sent: 0, failed: 0, skipped: recipients.length };
   const settings = await loadSettings(owner);
   const out = { sent: 0, failed: 0, skipped: 0 };
   for (let i = 0; i < recipients.length; i += 10) {

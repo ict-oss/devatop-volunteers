@@ -4,7 +4,7 @@ import { createGuardianRequest, guardianDecide, guardianState, replyToMoreInfo, 
 import { sendTemplateEmail } from "@/lib/email/notify";
 import { asCaller, asVisitor, getCaller, trusted } from "@/lib/server/caller";
 import { fail, ok, run, signedOut, type Result } from "@/lib/server/action";
-import { publicEnv } from "@/lib/env";
+import { emailEnabled, publicEnv } from "@/lib/env";
 
 /** Submit the application. The email address comes from the verified session, never from the form. */
 export async function submitApplicationAction(raw: unknown): Promise<Result> {
@@ -18,15 +18,17 @@ export async function submitApplicationAction(raw: unknown): Promise<Result> {
   });
 }
 
-/** Under-18: save their details, then email the parent or guardian a one-time link. */
-export async function requestGuardianAction(raw: { application: unknown; guardian: unknown }): Promise<Result<{ emailed: boolean }>> {
-  return run(async () => {
+/** Under-18: save their details, then email the parent or guardian a one-time link (or, with email off, hand the link to the applicant to pass on). */
+export async function requestGuardianAction(raw: { application: unknown; guardian: unknown }): Promise<Result<{ emailed: boolean; link?: string }>> {
+  return run<{ emailed: boolean; link?: string }>(async () => {
     const me = await getCaller();
     if (!me?.email) return signedOut();
     const input = applicationSchema.parse(raw.application);
     const g = guardianSchema.parse(raw.guardian);
     const { token } = await asCaller(me, async (tx) => { await saveApplicantDetails(tx, me.sub, me.email!, input); return createGuardianRequest(tx, me.sub, g); });
     const site = publicEnv().NEXT_PUBLIC_SITE_URL;
+    // email off: the applicant gets the one-time link to pass to their parent or guardian themselves
+    if (!emailEnabled()) return ok({ emailed: false, link: `${site.replace(/\/$/, "")}/guardian-consent/${token}` });
     const status = await sendTemplateEmail(trusted(), { template: "guardian", to: g.email, toName: g.name, userId: me.sub, vars: { applicant_first_name: input.first, consent_link: `${site}/guardian-consent/${token}` }, siteUrl: site });
     if (status !== "sent") return fail("email_failed", "We could not send the email to your guardian. Check the address and try again.");
     return ok({ emailed: true });

@@ -53,3 +53,13 @@ describe("automated emails", () => {
     expect(r).toBe("skipped");
   });
 });
+
+describe("email switched off (the default)", () => {
+  it("sends nothing through the real sender and writes nothing to the log", async () => {
+    delete process.env.EMAIL_ENABLED;
+    const before = (await t.h.svc<{ n: number }>("select count(*)::int as n from email_log"))[0].n;
+    const r = await sendTemplateEmail(t.owner, { template: "received", to: "x@example.com", vars: { first_name: "Ada" }, siteUrl: "https://v.example" });
+    expect(r).toBe("skipped");
+    expect((await t.h.svc<{ n: number }>("select count(*)::int as n from email_log"))[0].n).toBe(before);
+  });
+});

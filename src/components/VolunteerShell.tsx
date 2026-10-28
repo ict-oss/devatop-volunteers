@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SignOutButton } from "@/components/SignOutButton";
 import { Wordmark } from "@/components/SiteChrome";
 import { useMe } from "@/lib/useMe";
 
@@ -16,7 +17,7 @@ export function VolunteerShell({ children }: { children: React.ReactNode }) {
           <Wordmark />
           <div className="flex items-center gap-3 text-sm font-bold">
             <span className="hidden sm:inline">{me ? `${me.first} ${me.last}` : "Guest"}</span>
-            <Link href="/" className="underline">Public site</Link>
+            <SignOutButton />
           </div>
         </div>
         <nav aria-label="Volunteer" className="mx-auto max-w-[1300px] px-2 md:px-8 flex overflow-x-auto">

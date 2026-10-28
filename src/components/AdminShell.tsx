@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ROLE_LABEL, type Action, type Admin } from "@/lib/permissions";
 import { RealAdminContext, useAdmin } from "@/lib/useAdmin";
+import { SignOutButton } from "@/components/SignOutButton";
 import { supabaseBrowser } from "@/lib/auth/supabase-browser";
 import { ADMIN_IDLE_MS } from "@/lib/auth/routing";
 
@@ -59,8 +60,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="mt-auto grid gap-2 text-sm">
-          <button className="text-left underline opacity-80" onClick={async () => { await supabaseBrowser().auth.signOut(); window.location.assign("/login"); }}>Sign out</button>
-          <Link href="/" className="underline opacity-80">Public site</Link>
+          <SignOutButton className="text-left underline opacity-80" />
         </div>
       </aside>
       <main id="main" className="p-4 md:p-8 min-w-0">

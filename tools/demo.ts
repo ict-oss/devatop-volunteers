@@ -16,8 +16,8 @@ async function main(url: string) {
       if (mode === "remove") console.log(`Removed ${await removeDemo(run)} demo volunteers.`);
       else {
         const r = await seedDemo(run);
-        if (r.added === 0) console.log(`Demo volunteers are already there (${await demoCount(run)}). Nothing changed.`);
-        else console.log(`Added ${r.added} demo volunteers.${r.withHours ? "" : " No hours were added because no admin exists yet: sign in as a Super Admin, then run npm run db:demo:remove and npm run db:demo again."} Remove them before launch: npm run db:demo:remove`);
+        if (r.added === 0 && r.calls === 0) console.log(`Demo volunteers are already there (${await demoCount(run)}). Nothing changed.`);
+        else console.log(`Added ${r.added} demo volunteers and ${r.calls} demo calls, all marked (Temp).${r.withHours || r.added === 0 ? "" : " No hours were added because no admin exists yet: sign in as a Super Admin, then run npm run db:demo:remove and npm run db:demo again."} Remove them before launch: npm run db:demo:remove`);
       }
     });
   } catch (e) {

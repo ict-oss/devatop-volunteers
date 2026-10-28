@@ -8,7 +8,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 
 **Built and tested**
 - The real system is the only system: there is no prototype mode, no sample data and no `AUTH_ENABLED` flag. Every screen below reads and writes the database as the signed-in person (row-level security applies; scope in the query):
-  - Sign-in by emailed code, two-factor for admins, 30-minute admin idle timeout, `/admin/not-allowed`.
+  - Sign-in with email and password (create an account at `/signup`, reset by emailed link), two-factor (authenticator app) for admins, 30-minute admin idle timeout, `/admin/not-allowed`.
   - Application on the database (3-step form, consents with exact wording, under-18 guardian by emailed link), admin review queue (approve / reject / needs info, with the emails), approval puts the volunteer in their departments.
   - Volunteer dashboard, calls and sign-ups with waitlist, hours (remote log, approval), QR check-in/out, certificates (issue, PDF with QR, public verify page), profile, "download my data", delete account, guides with read receipts, chat rooms (database decides access), announcements.
   - Admin: overview, volunteers (suspend, reactivate, alumni), admins (Super Admin adds, changes and removes admins; the database keeps two Super Admins), opportunities, attendance + QR, hours, certificates, departments (add/rename/merge/archive/restore), messages (send to a group, edit the seven emails, WhatsApp link and sender settings, sent log), reports with logged exports, audit log, site images and clips (stored in Supabase Storage).
@@ -20,8 +20,8 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - Images: stand-in artwork in `public/photos/`, silent clips in `public/video/` (`node tools/standins/make.mjs` regenerates). Admin > Site images replaces a picture or a silent clip (uploaded to the public Supabase Storage bucket `site-images`, recorded in the `site_images` table with who confirmed consent, shown to every visitor via `LiveContext.images`). The bucket is created by the app on first upload. Replace stand-ins with real, consented photos. `HERO_PHOTOS_IN_LETTERS` in `src/lib/images.ts` switches the ACTION letters from solid orange to photos.
 
 **Go-live checklist (see docs/developer/deploy.md)**
-1. Supabase: email code on, authenticator two-factor on, email template shows the code (editing it needs custom SMTP), Site URL set. Custom SMTP (Brevo) is optional for testing, needed before a real launch because Supabase's built-in sender allows only a few emails an hour.
-2. `npm run db:migrate && npm run db:seed` on the live database; sign in once with each of the first two Super Admin emails, then run the SQL in `docs/developer/database.md`.
+1. Supabase (Authentication): Email provider on with **Confirm email OFF** and minimum password length 8, authenticator two-factor (TOTP) on, Site URL and Redirect URLs set to the live address. No SMTP or email template is needed to sign in. "Forgot password" does send a reset email: Supabase's built-in sender allows only a few an hour, so set Brevo as the SMTP before a real launch.
+2. `npm run db:migrate && npm run db:seed` on the live database; each of the first two Super Admins creates an account at `/signup`, then run the SQL in `docs/developer/database.md`.
 3. Vercel variables: everything in `.env.example` that you need (`SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` = Session pooler, `CRON_SECRET`; `BREVO_API_KEY` and `EMAIL_ENABLED=true` only when you switch the site's emails on).
 4. Redeploy, sign in as a Super Admin, set the WhatsApp link in Admin > Messages > Settings, add the other admins in Admin > Admins, and upload real photos in Admin > Site images.
 
@@ -34,7 +34,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - Next.js 16 (App Router), TypeScript strict. Note: Next 16 calls middleware "proxy" (`src/proxy.ts`, exported `proxy`).
 - Tailwind CSS v4 (tokens in `src/app/globals.css`), custom components (no shadcn yet).
 - PostgreSQL on Supabase, Drizzle ORM, migrations in `src/lib/db/migrations`.
-- Supabase Auth (email one-time code; no SMS) + TOTP two-factor for admins.
+- Supabase Auth (email + password, no SMS) + TOTP two-factor for admins. The requirements document said passwordless; Devatop asked for passwords instead.
 - Zod for validation (to be shared by forms and server), Brevo or Resend for email, `qrcode` for QR, `fflate` for `.xlsx` export.
 - GSAP (ScrollTrigger, DrawSVG) + Lenis: public site only. Vitest for tests.
 

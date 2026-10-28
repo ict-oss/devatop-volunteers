@@ -22,7 +22,7 @@ Every screen reads and writes the database. The earlier clickable prototype (sam
 
 ## Auth
 
-Supabase Auth, emailed one-time code (no passwords, no SMS). Admins add an authenticator-app code (TOTP); the database treats an admin as an admin only at assurance level `aal2`. Routing rules are pure functions in `src/lib/auth/routing.ts`.
+Supabase Auth, email and password (no SMS). The sign-in email is the username. Admins add an authenticator-app code (TOTP); the database treats an admin as an admin only at assurance level `aal2`. Routing rules are pure functions in `src/lib/auth/routing.ts`.
 
 ## Email
 

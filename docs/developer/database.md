@@ -34,7 +34,7 @@ PostgreSQL on Supabase, Drizzle ORM. Schema: `src/lib/db/schema.ts`. SQL: `src/l
 - **Query as a person:** `asUser(db(), { sub, aal }, (tx) => ...)` from `src/lib/db/rls.ts` runs the query under row-level security. The plain `db()` connection is the database owner and **bypasses** it: use it only for trusted server jobs.
 - **Apply to Supabase:** put the Session pooler connection string in `.env.local` as `DATABASE_URL`, then `npm run db:migrate` and `npm run db:check`.
 - **Starting data:** after `db:migrate`, run `npm run db:seed` once. It adds the programmes, departments, settings (`min_age` 16, `review_days` 7, an empty `whatsapp_group`), the two required trainings, the seven email templates and the starter guides. Running it again does nothing, so edits made in the admin section are never overwritten. The list lives in `src/lib/db/seed-data.ts`.
-- **First Super Admins:** both people sign in once with an email code, then run in Supabase's SQL editor:
+- **First Super Admins:** both people create an account at `/signup` (email and password), then run in Supabase's SQL editor:
 
 ```sql
 insert into public.admin_roles (user_id, role)
@@ -43,12 +43,12 @@ select id, 'super_admin' from auth.users where email in ('first@devatop.org', 's
 
 ## Supabase settings that must be switched on
 
-Authentication: email one-time code (set the email template to show the code), TOTP multi-factor, Site URL and redirect URLs set to the live address, a custom SMTP sender (Brevo or Resend). There is no SMS sign-in (Devatop has no phone provider).
+Authentication: Email provider on, "Confirm email" off, minimum password length 8, TOTP multi-factor, Site URL and redirect URLs set to the live address (the redirect URLs must include `/auth/reset`), a custom SMTP sender (for the "Forgot password" email only) (Brevo or Resend). There is no SMS sign-in (Devatop has no phone provider).
 Backups: daily backups on a paid plan, plus a copy stored away from the main server, and a restore tested once before launch.
 
 ## Turning sign-in on
 
-Sign-in protection is always on. To get in the first time: finish the Supabase settings above, make the first two Super Admins (SQL below), sign in once by hand (email code, then scan the two-factor QR code). Further admins are added from **Admin > Admins** by a Super Admin.
+Sign-in protection is always on. To get in the first time: finish the Supabase settings above, make the first two Super Admins (SQL below), sign in once by hand (email and password, then scan the two-factor QR code). Further admins are added from **Admin > Admins** by a Super Admin.
 
 ## Known limits
 

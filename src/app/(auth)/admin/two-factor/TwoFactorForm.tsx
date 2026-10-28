@@ -1,4 +1,5 @@
 "use client";
+import { Busy } from "@/components/Spinner";
 import { useEffect, useState } from "react";
 import { enrollTotp, verifiedTotpFactorId, verifyTotp } from "@/lib/auth/mfa";
 
@@ -56,7 +57,7 @@ export function TwoFactorForm() {
           value={code} onChange={(e) => setCode(e.target.value)} aria-invalid={!!error} />
         {error && <p className="err" role="alert">{error}</p>}
       </div>
-      <button className="btn" disabled={busy}>{busy ? "Checking…" : "Continue to admin"}</button>
+      <button className="btn" disabled={busy}>{busy ? <Busy>Checking the code…</Busy> : "Continue to admin"}</button>
     </form>
   );
 }

@@ -15,7 +15,7 @@ const known = new Set(); // the first time we meet an email we create the accoun
 async function login(page, email) {
   if (!known.has(email)) {
     known.add(email);
-    await page.goto(BASE + "/signup"); await page.fill("#email", email); await page.fill("#password", PASSWORD); await page.fill("#again", PASSWORD); await page.getByRole("button", { name: "Create my account" }).click();
+    await page.goto(BASE + "/signup"); await page.fill("#email", email); await page.fill("#password", PASSWORD); await page.getByRole("button", { name: "Create my account" }).click();
   } else {
     await page.goto(BASE + "/login"); await page.fill("#email", email); await page.fill("#password", PASSWORD); await page.getByRole("button", { name: "Sign in" }).click();
   }
@@ -33,12 +33,17 @@ async function login(page, email) {
   await step("signed-out visitor is sent to login from /admin and /dashboard", async () => { await visitor.p.goto(BASE + "/admin"); await visitor.p.waitForURL(/\/login/); await visitor.p.goto(BASE + "/dashboard"); await visitor.p.waitForURL(/\/login/); });
 
   console.log("\nSign-in with a password");
-  await step("a weak or mismatched password is refused when creating an account", async () => {
-    await visitor.p.goto(BASE + "/signup"); await visitor.p.fill("#email", "weak@example.com"); await visitor.p.fill("#password", "abc"); await visitor.p.fill("#again", "abc"); await visitor.p.getByRole("button", { name: "Create my account" }).click(); await expectText(visitor.p, "at least 8");
-    await visitor.p.fill("#password", "Valid-pass-1"); await visitor.p.fill("#again", "Valid-pass-2"); await visitor.p.getByRole("button", { name: "Create my account" }).click(); await expectText(visitor.p, "not the same");
+  await step("a weak password is refused when creating an account, and the tick-list shows what is missing", async () => {
+    await visitor.p.goto(BASE + "/signup"); await visitor.p.fill("#email", "weak@example.com"); await visitor.p.fill("#password", "abc"); await visitor.p.getByRole("button", { name: "Create my account" }).click(); await expectText(visitor.p, "Use at least 8 characters");
+    await visitor.p.fill("#password", "abcdefghij"); await visitor.p.getByRole("button", { name: "Create my account" }).click(); await expectText(visitor.p, "letters and at least one number");
+    await visitor.p.getByRole("button", { name: "Show" }).click(); if ((await visitor.p.locator("#password").getAttribute("type")) !== "text") throw new Error("Show did not reveal the password"); await visitor.p.getByRole("button", { name: "Hide" }).click();
+  });
+  await step("the sign-in page is the same form with a tab for creating an account", async () => {
+    await visitor.p.goto(BASE + "/login"); await visitor.p.getByRole("tab", { name: "Create account" }).click(); await visitor.p.getByText("A number").first().waitFor();
+    await visitor.p.getByRole("tab", { name: "Sign in" }).click(); await visitor.p.getByText("Forgot password?").first().waitFor();
   });
   await step("a wrong password is refused with a plain message, and the email is not in the address bar", async () => {
-    await visitor.p.goto(BASE + "/login"); await visitor.p.fill("#email", "nobody@example.com"); await visitor.p.fill("#password", "Wrong-pass-1"); await visitor.p.getByRole("button", { name: "Sign in" }).click(); await expectText(visitor.p, "Wrong email or password");
+    await visitor.p.goto(BASE + "/login"); await visitor.p.fill("#email", "nobody@example.com"); await visitor.p.fill("#password", "Wrong-pass-1"); await visitor.p.getByRole("button", { name: "Sign in" }).click(); await expectText(visitor.p, "Signing you in"); if (!(await visitor.p.locator("#email").isDisabled())) throw new Error("the form is not locked while signing in"); await expectText(visitor.p, "Wrong email or password");
     if (/nobody|Wrong-pass/.test(visitor.p.url())) throw new Error("credentials in the URL");
   });
   await step("forgot password: the page confirms without saying whether the email has an account", async () => {
@@ -213,8 +218,8 @@ async function login(page, email) {
     await admin.p.locator("tr", { hasText: "Amaka Obi" }).first().getByRole("button", { name: "Reactivate" }).click(); await expectText(admin.p, "Active again.");
   });
   const newbie = await mk();
-  await step("someone who has no account yet cannot be made an admin; after signing in once they can", async () => {
-    await admin.p.goto(BASE + "/admin/admins"); await admin.p.fill('input[type=email]', "newadmin@example.com"); await admin.p.getByRole("button", { name: "Add admin" }).click(); await expectText(admin.p, "has not signed in yet");
+  await step("someone who has no account yet cannot be made an admin; after creating an account they can", async () => {
+    await admin.p.goto(BASE + "/admin/admins"); await admin.p.fill('input[type=email]', "newadmin@example.com"); await admin.p.getByRole("button", { name: "Add admin" }).click(); await expectText(admin.p, "has no account yet");
     await login(newbie.p, "newadmin@example.com");
     await admin.p.goto(BASE + "/admin/admins"); await admin.p.fill('input[type=email]', "newadmin@example.com"); await admin.p.getByRole("button", { name: "Add admin" }).click(); await expectText(admin.p, "is now an admin");
     await admin.p.locator("tr", { hasText: "newadmin@example.com" }).first().waitFor();

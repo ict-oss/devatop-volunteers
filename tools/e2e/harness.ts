@@ -31,6 +31,9 @@ async function main() {
   }
   await new PGLiteSocketServer({ db: pg, port: PG_PORT, host: "127.0.0.1" }).start();
 
+  // The fake auth and the app share this one in-memory database, and it cannot take two queries at the same instant: if one collides, try again.
+  const q: typeof pg.query = (async (...a: Parameters<typeof pg.query>) => { for (let i = 0; ; i++) { try { return await pg.query(...a); } catch (e) { if (i >= 4) throw e; await new Promise((r) => setTimeout(r, 120 * (i + 1))); } } }) as typeof pg.query;
+
   const factors = new Map<string, { id: string; status: "verified" | "unverified" }[]>(); // per user
   const refresh = new Map<string, { id: string; aal: "aal1" | "aal2" }>();
   const mails: unknown[] = [];
@@ -44,7 +47,7 @@ async function main() {
     const access = sign({ iss: "e2e", sub: id, aud: "authenticated", role: "authenticated", email, aal, amr: [{ method: aal === "aal2" ? "totp" : "otp", timestamp: now }], session_id: "s-" + id, iat: now, exp: now + 3600, app_metadata: {}, user_metadata: {} });
     return { access_token: access, token_type: "bearer", expires_in: 3600, expires_at: now + 3600, refresh_token: rt, user: userObj(id, email) };
   };
-  const emailOf = async (id: string) => (await pg.query<{ email: string }>("select email from auth.users where id=$1", [id])).rows[0]?.email;
+  const emailOf = async (id: string) => (await q<{ email: string }>("select email from auth.users where id=$1", [id])).rows[0]?.email;
 
   http.createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://x");
@@ -80,12 +83,13 @@ async function main() {
         if (m2) { const f = files.get(`${m2[1]}/${decodeURIComponent(m2[2])}`); if (!f) return send(404, { message: "not found" }); res.writeHead(200, { "content-type": f.type, "content-length": f.data.length }).end(f.data); return; }
         return send(404, { msg: `fake storage: no route ${req.method} ${p}` });
       }
+      if (p === "/auth/v1/signup" || (p === "/auth/v1/token" && url.searchParams.get("grant_type") === "password")) await new Promise((r) => setTimeout(r, 350)); // a little latency, so the "working" screens can be seen and tested
       if (p === "/auth/v1/signup" && req.method === "POST") {
         const email = String(body.email ?? "").toLowerCase(); if (!email || !body.password) return send(422, { code: 422, error_code: "validation_failed", msg: "Signup requires a valid password" });
-        const existing = (await pg.query<{ id: string }>("select id from auth.users where lower(email)=$1", [email])).rows[0];
+        const existing = (await q<{ id: string }>("select id from auth.users where lower(email)=$1", [email])).rows[0];
         if (existing && passwords.has(email)) return send(422, { code: 422, error_code: "user_already_exists", msg: "User already registered" });
         // an account that was seeded without a password (the first Super Admins) gets its password here, like a first sign-up
-        const id = existing?.id ?? (await pg.query<{ id: string }>("insert into auth.users (email) values ($1) returning id", [email])).rows[0].id;
+        const id = existing?.id ?? (await q<{ id: string }>("insert into auth.users (email) values ($1) returning id", [email])).rows[0].id;
         passwords.set(email, String(body.password)); return send(200, session(id, email, "aal1"));
       }
       if (p === "/auth/v1/user" && req.method === "PUT" && claims) { passwords.set(String(claims.email).toLowerCase(), String(body.password)); return send(200, userObj(claims.sub, claims.email)); }
@@ -93,13 +97,13 @@ async function main() {
       if (p === "/auth/v1/otp") return send(200, {});
       if (p === "/auth/v1/verify") {
         if (body.token !== "123456") return send(403, { code: 403, error_code: "otp_expired", msg: "Token has expired or is invalid" });
-        let id = (await pg.query<{ id: string }>("select id from auth.users where email=$1", [body.email])).rows[0]?.id;
-        if (!id) id = (await pg.query<{ id: string }>("insert into auth.users (email) values ($1) returning id", [body.email])).rows[0].id;
+        let id = (await q<{ id: string }>("select id from auth.users where email=$1", [body.email])).rows[0]?.id;
+        if (!id) id = (await q<{ id: string }>("insert into auth.users (email) values ($1) returning id", [body.email])).rows[0].id;
         return send(200, session(id, body.email, "aal1"));
       }
       if (p === "/auth/v1/user") { if (!claims) return send(401, { code: 401, msg: "invalid JWT" }); return send(200, userObj(claims.sub, claims.email)); }
       if (p === "/auth/v1/token" && url.searchParams.get("grant_type") === "password") {
-        const email = String(body.email ?? "").toLowerCase(); const row = (await pg.query<{ id: string }>("select id from auth.users where lower(email)=$1", [email])).rows[0];
+        const email = String(body.email ?? "").toLowerCase(); const row = (await q<{ id: string }>("select id from auth.users where lower(email)=$1", [email])).rows[0];
         if (!row || passwords.get(email) !== body.password) return send(400, { code: 400, error_code: "invalid_credentials", msg: "Invalid login credentials" });
         return send(200, session(row.id, email, "aal1"));
       }
@@ -120,7 +124,7 @@ async function main() {
         }
       }
       const del = p.match(/^\/auth\/v1\/admin\/users\/([^/]+)$/);
-      if (del && req.method === "DELETE") { await pg.query("delete from auth.users where id=$1", [del[1]]); return send(200, {}); }
+      if (del && req.method === "DELETE") { await q("delete from auth.users where id=$1", [del[1]]); return send(200, {}); }
       send(404, { msg: `fake auth: no route ${req.method} ${p}` });
     } catch (e) { send(500, { msg: (e as Error).message }); }
   }).listen(AUTH_PORT, "127.0.0.1");

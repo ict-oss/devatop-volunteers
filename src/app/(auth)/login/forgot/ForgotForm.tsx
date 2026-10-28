@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import { Busy } from "@/components/Spinner";
 import { sendPasswordReset } from "@/lib/auth/password";
 
 export function ForgotForm() {
@@ -11,11 +12,11 @@ export function ForgotForm() {
     setBusy(true); setError("");
     try { await sendPasswordReset(email.trim()); setSent(true); } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   }
-  if (sent) return <p className="border-2 border-ink p-4 font-bold" role="status">If there is an account for that email, a link is on its way. Check your spam folder too. <Link href="/login" className="underline">Back to sign in</Link></p>;
+  if (sent) return <p className="border-2 border-ink p-4 font-bold" role="status">If there is an account for that email, a link is on its way. It can take a minute, and check your spam folder too. <Link href="/login" className="underline">Back to sign in</Link></p>;
   return (
     <form onSubmit={submit} noValidate className="grid gap-5">
-      <div><label htmlFor="email" className="label">Email</label><input id="email" type="email" className="input" autoComplete="username" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={!!error} />{error && <p className="err" role="alert">{error}</p>}</div>
-      <button className="btn" disabled={busy}>{busy ? "Sending…" : "Send me a link"}</button>
+      <div><label htmlFor="email" className="label">Email</label><input id="email" type="email" className="input" autoComplete="username" autoFocus disabled={busy} value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={!!error} />{error && <p className="err" role="alert">{error}</p>}</div>
+      <button className="btn" disabled={busy}>{busy ? <Busy>Sending the link…</Busy> : "Send me a link"}</button>
     </form>
   );
 }

@@ -6,7 +6,9 @@ import { ArrowRight, Check } from "@/components/Marks";
 import { HEARD, LANGUAGES, SKILLS, STATE_NAMES } from "@/lib/data";
 import { CONSENTS } from "@/lib/consent-texts";
 import { createAccount, signInWithPassword } from "@/lib/auth/password";
-import { PASSWORD_MIN } from "@/lib/auth/password-rules";
+import { PasswordHints } from "@/components/auth/PasswordHints";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { Busy } from "@/components/Spinner";
 import { supabaseBrowser } from "@/lib/auth/supabase-browser";
 import { guardianStatusAction, requestGuardianAction, submitApplicationAction } from "@/app/actions/apply";
 import { ageOf } from "@/lib/types";
@@ -204,14 +206,17 @@ export function ApplyForm({ departments, minAge, reviewDays, already = false }: 
             {/* the account: your sign-in for the dashboard later */}
             <div className="border-2 border-ink p-4 grid gap-3">
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div><b>{haveAccount ? "Sign in to continue" : "Choose a password"}</b><span className="why">{haveAccount ? "Use the email above and your password." : `This makes your account, so you can see your application and sign up for calls. At least ${PASSWORD_MIN} characters, with letters and a number.`}</span></div>
+                <div><b>{haveAccount ? "Sign in to continue" : "Choose a password"}</b><span className="why">{haveAccount ? "Use the email above and your password." : "This makes your account, so you can see your application and sign up for calls."}</span></div>
                 {d.verified && <span className="stamp stamp-ok inline-flex items-center gap-1"><Check className="w-4 h-4" /> Signed in</span>}
               </div>
               {!d.verified && (
-                <div className="flex gap-2 items-start flex-wrap">
-                  <input className="input max-w-xs" type="password" autoComplete={haveAccount ? "current-password" : "new-password"} aria-label="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-                  <button type="button" className="btn btn-sm btn-ink" disabled={busy} onClick={account}>{haveAccount ? "Sign in" : "Create my account"}</button>
-                  <button type="button" className="text-sm underline font-bold self-center" onClick={() => { setHaveAccount((h) => !h); setErr({}); }}>{haveAccount ? "I need to create an account" : "I already have an account"}</button>
+                <div className="grid gap-3 max-w-md">
+                  <PasswordInput id="apply-password" value={password} onChange={setPassword} autoComplete={haveAccount ? "current-password" : "new-password"} disabled={busy} invalid={!!err.otp} />
+                  {!haveAccount && <PasswordHints password={password} />}
+                  <div className="flex gap-3 items-center flex-wrap">
+                    <button type="button" className="btn btn-sm btn-ink" disabled={busy} onClick={account}>{busy ? <Busy>{haveAccount ? "Signing you in…" : "Creating your account…"}</Busy> : haveAccount ? "Sign in" : "Create my account"}</button>
+                    <button type="button" className="text-sm underline font-bold" disabled={busy} onClick={() => { setHaveAccount((h) => !h); setErr({}); }}>{haveAccount ? "I need to create an account" : "I already have an account"}</button>
+                  </div>
                 </div>
               )}
               {E("otp")}
@@ -260,7 +265,7 @@ export function ApplyForm({ departments, minAge, reviewDays, already = false }: 
                 </div>
                 {d.gVerified ? <span className="stamp stamp-ok inline-flex items-center gap-1 self-start"><Check className="w-4 h-4" /> Guardian confirmed</span> : (
                     <div className="flex gap-2 flex-wrap items-start">
-                      <button type="button" className="btn btn-sm btn-ghost" disabled={busy || !d.gName.trim() || !/^\S+@\S+\.\S+$/.test(d.gContact.trim())} onClick={sendGuardian}>{d.gSent ? "Get a new link" : "Send the link to my guardian"}</button>
+                      <button type="button" className="btn btn-sm btn-ghost" disabled={busy || !d.gName.trim() || !/^\S+@\S+\.\S+$/.test(d.gContact.trim())} onClick={sendGuardian}>{busy ? <Busy>Preparing the link…</Busy> : d.gSent ? "Get a new link" : "Send the link to my guardian"}</button>
                       {d.gSent && <p className="why w-full">{gRefused ? <b className="text-alert">Your guardian declined. You can&apos;t submit this application.</b> : gLink ? <>Send this link to <b>{d.gName}</b> yourself, by WhatsApp or text. It works once for 7 days, and this page updates by itself when they answer.</> : <>We emailed <b>{d.gContact}</b>. This page updates by itself when they answer. The link works for 7 days.</>}</p>}
                       {d.gSent && gLink && !gRefused && (
                         <div className="w-full grid gap-2">
@@ -277,7 +282,7 @@ export function ApplyForm({ departments, minAge, reviewDays, already = false }: 
               </div>
             )}
             {err.submit && <p className="err" role="alert">{err.submit}</p>}
-            <div className="flex items-center justify-between gap-3 mt-2"><button type="button" className="btn btn-ghost" onClick={() => set("step", 2)}>Back</button><button className="btn text-lg" type="submit" disabled={busy} data-magnetic>{busy ? "Sending…" : <>Send my application <ArrowRight /></>}</button></div>
+            <div className="flex items-center justify-between gap-3 mt-2"><button type="button" className="btn btn-ghost" onClick={() => set("step", 2)}>Back</button><button className="btn text-lg" type="submit" disabled={busy} data-magnetic>{busy ? <Busy>Sending your application…</Busy> : <>Send my application <ArrowRight /></>}</button></div>
           </form>
         )}
       </section>

@@ -45,6 +45,11 @@
 .btn-ghost:hover { background: var(--color-ink); color: var(--color-paper); }
 .btn-sm { min-height: 40px; padding: .4rem .9rem; font-size: .95rem; }
 .btn[disabled] { opacity: .45; pointer-events: none; }
+.btn[disabled]:has(.spinner) { opacity: .92; cursor: progress; } /* working, not unavailable: keep it clearly readable */
+/* "Working" feedback: a ring that turns, and a thin bar along the top of the page while a page loads. Motion here tells people to wait, so it stays on in every section. */
+.spinner { display: inline-block; width: 1.1em; height: 1.1em; border: .2em solid currentColor; border-right-color: transparent; border-radius: 50%; animation: dv-spin .75s linear infinite; flex: none; }
+@keyframes dv-spin { to { transform: rotate(360deg); } }
+.navbar { position: fixed; z-index: 100; top: 0; left: 0; height: 4px; background: var(--color-orange); box-shadow: 0 0 0 1px var(--color-ink); transition: width .4s ease-out, opacity .25s; }
 
 /* ---------- form controls ---------- */
 .label { display: block; font-weight: 700; font-size: .95rem; margin-bottom: .3rem; }
@@ -110,4 +115,7 @@ html.has-cursor input, html.has-cursor textarea, html.has-cursor select, html.ha
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  /* waiting feedback stays, as a gentle pulse instead of a spin */
+  .spinner { animation: dv-pulse 1.4s ease-in-out infinite !important; border-color: currentColor; }
 }
+@keyframes dv-pulse { 50% { opacity: .3; } }

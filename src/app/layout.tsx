@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Big_Shoulders, Fraunces, Atkinson_Hyperlegible_Next } from "next/font/google";
 import "./globals.css";
+import { NavProgress } from "@/components/NavProgress";
 import { RegisterSW } from "@/components/RegisterSW";
 
 // Google renamed "Big Shoulders Display" to "Big Shoulders"; same face (requirements doc, section 17).
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <a className="skip" href="#main">Skip to content</a>
         {children}
+        <NavProgress />
         <RegisterSW />
       </body>
     </html>

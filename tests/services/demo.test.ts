@@ -12,12 +12,17 @@ describe("temporary demo volunteers", () => {
   it("adds ten, shows them in the public numbers, never doubles up, and removes exactly them", async () => {
     const real = await t.h.activeVolunteer("demo-real", { state: "Lagos" }); // a real volunteer must survive the removal
     await t.h.admin("demo-admin", "super_admin");
-    expect(await seedDemo(run)).toEqual({ added: 10, withHours: true });
+    expect(await seedDemo(run)).toEqual({ added: 10, withHours: true, calls: 6 });
     expect(await demoCount(run)).toBe(10);
-    expect(await seedDemo(run)).toEqual({ added: 0, withHours: false });
+    expect(await seedDemo(run)).toEqual({ added: 0, withHours: true, calls: 0 });
+    // every demo person and call is labelled, and the calls show places taken
+    expect((await run("select count(*)::int as n from volunteer_profiles where first_name like '%(Temp)%'"))[0].n).toBe(10);
+    expect((await run("select count(*)::int as n from opportunities where title like '%(Temp)%' and starts_at > now()"))[0].n).toBe(6);
+    expect((await run("select count(*)::int as n from signups"))[0].n).toBe(13);
     const n = await t.as("anon", (tx) => publicNumbers(tx));
     expect(n.volunteers).toBe(11); expect(n.hours).toBeGreaterThan(100); expect(n.states).toBeGreaterThanOrEqual(8); expect(n.stateHours.lagos).toBeGreaterThan(0);
     expect(await removeDemo(run)).toBe(10);
+    expect((await run("select count(*)::int as n from opportunities"))[0].n).toBe(0);
     expect(await demoCount(run)).toBe(0);
     const after = await t.as("anon", (tx) => publicNumbers(tx));
     expect(after).toMatchObject({ volunteers: 1, hours: 0, states: 1 });

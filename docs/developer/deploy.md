@@ -58,6 +58,8 @@ To switch email on later: verify the sender in Brevo, set `BREVO_API_KEY` and `E
 { "crons": [{ "path": "/api/cron/reminders", "schedule": "0 15 * * *" }] }
 ```
 
-## Temporary demo volunteers (preview only)
+## Temporary demo volunteers and calls (preview only)
 
-`npm run db:demo` adds 10 demo volunteers (emails ending `@demo.devatop.invalid`) with approved hours and departments, so the home numbers, the map and the Admin screens show something. They count in the public figures like real volunteers, so **remove them before launch**: `npm run db:demo:remove` deletes exactly those people and their hours and nothing else. Approved hours need a deciding admin, so sign in as a Super Admin once before adding them.
+`npm run db:demo` adds 10 demo volunteers and 6 demo calls so the home numbers, the map, the calls board and the Admin screens show something. Every demo volunteer has "(Temp)" after their first name (and an email ending `@demo.devatop.invalid`), and every demo call has "(Temp)" in its title, so they are obvious on screen. Running it again is safe (it only fills what is missing, and labels people added by an older version).
+
+They count in the public figures like real volunteers, so **remove them before launch**: `npm run db:demo:remove` deletes exactly those people, their hours, and the demo calls with their sign-ups, and nothing else. Approved hours need a deciding admin, so sign in as a Super Admin once before adding them. Run `npm run db:seed` first so departments and programmes exist.

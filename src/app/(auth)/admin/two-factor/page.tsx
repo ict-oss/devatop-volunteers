@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SignOutButton } from "@/components/SignOutButton";
 import { authState } from "@/lib/auth/session";
 import { TwoFactorForm } from "./TwoFactorForm";
 
@@ -14,6 +15,7 @@ export default async function TwoFactorPage() {
       <h1 className="text-[length:var(--text-display)]">One more <em className="accent">step.</em></h1>
       <p className="mt-4 text-lg">Admins sign in with a second check, so a stolen password is not enough to open the admin area.</p>
       <div className="mt-8"><TwoFactorForm /></div>
+      <p className="mt-8 text-sm">Wrong account? <SignOutButton /></p>
     </>
   );
 }

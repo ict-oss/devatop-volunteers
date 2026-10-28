@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SignOutButton } from "@/components/SignOutButton";
 import { authState } from "@/lib/auth/session";
 
 export const metadata = { title: "Not allowed" };
@@ -12,7 +13,7 @@ export default async function NotAllowed() {
       <p className="mt-4 text-lg">This page is not for your account.</p>
       <div className="mt-8 flex flex-wrap gap-3">
         {s.signedIn ? <Link className="btn" href={s.admin ? "/admin" : "/dashboard"}>{s.admin ? "Back to the admin dashboard" : "Go to my dashboard"}</Link> : <Link className="btn" href="/login">Sign in</Link>}
-        <Link className="btn btn-ghost" href="/">Public site</Link>
+        {s.signedIn && <SignOutButton className="btn btn-ghost" />}
       </div>
     </>
   );

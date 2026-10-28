@@ -235,6 +235,13 @@ async function login(page, email) {
     await tobi.p.goto(BASE + "/admin/admins"); await tobi.p.waitForURL(/not-allowed/);
   });
 
+  await step("a volunteer can sign out from the header, and then the portal needs a new sign-in", async () => {
+    await tobi.p.goto(BASE + "/dashboard"); await expectText(tobi.p, "Sign out");
+    if (await tobi.p.getByText("Public site").count()) throw new Error("the Public site link is still in the volunteer header");
+    await tobi.p.getByRole("button", { name: "Sign out" }).click(); await tobi.p.waitForURL(/\/login/);
+    await tobi.p.goto(BASE + "/dashboard"); await tobi.p.waitForURL(/\/login/);
+  });
+
   console.log("\nCron and account deletion");
   await step("the reminder cron refuses a wrong secret and runs with the right one", async () => {
     const bad = await fetch(BASE + "/api/cron/reminders", { headers: { authorization: "Bearer nope" } }); if (bad.status !== 401) throw new Error("bad status " + bad.status);

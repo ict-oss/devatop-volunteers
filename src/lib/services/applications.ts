@@ -50,7 +50,7 @@ export async function submitApplication(db: Db, userId: string, email: string, i
 
     // the database refuses here if: under the minimum age, under 18 without a verified guardian, or consents missing
     const [app] = await db.insert(s.applications).values({ userId }).returning({ id: s.applications.id });
-    await db.insert(s.applicationDepartments).values(input.departmentIds.map((departmentId) => ({ applicationId: app.id, departmentId })));
+    if (input.departmentIds.length) await db.insert(s.applicationDepartments).values(input.departmentIds.map((departmentId) => ({ applicationId: app.id, departmentId })));
     return { applicationId: app.id };
   });
 }

@@ -90,7 +90,7 @@ export function ApplyForm({ departments, minAge, reviewDays, already = false }: 
   const next2 = () => {
     const e: Record<string, string> = {};
     if (!d.skills.length) e.skills = "Pick at least one skill.";
-    if (!d.departments.length) e.departments = "Pick at least one area that interests you.";
+    if (departments.length > 0 && !d.departments.length) e.departments = "Pick at least one area that interests you.";
     if (!d.availability) e.availability = "Tell us when you are usually free.";
     setErr(e);
     if (!Object.keys(e).length) { set("step", 3); window.scrollTo({ top: 0 }); }
@@ -229,7 +229,7 @@ export function ApplyForm({ departments, minAge, reviewDays, already = false }: 
           <form className="grid gap-7" onSubmit={(e) => { e.preventDefault(); next2(); }} noValidate>
             <fieldset><legend className="label">Your skills</legend><span className="why mb-2">Pick all that fit. We use this to suggest the right calls.</span>
               <div className="flex flex-wrap gap-2 mt-2">{SKILLS.map((k) => <button type="button" key={k} className="chip" aria-pressed={d.skills.includes(k)} onClick={() => toggle("skills", k)}>{k}</button>)}</div>{E("skills")}</fieldset>
-            <fieldset><legend className="label">Where would you like to help?</legend><span className="why mb-2">Pick the areas that interest you. An admin confirms where you start.</span>
+            <fieldset><legend className="label">Where would you like to help?</legend><span className="why mb-2">{departments.length ? "Pick the areas that interest you. An admin confirms where you start." : "The volunteer areas are not published yet. You can carry on: an admin will place you after approval."}</span>
               <div className="flex flex-wrap gap-2 mt-2">{departments.map((x) => <button type="button" key={x.id} className="chip" aria-pressed={d.departments.includes(x.id)} onClick={() => toggle("departments", x.id)}>{x.name}</button>)}</div>{E("departments")}</fieldset>
             <fieldset><legend className="label">When are you usually free?</legend>
               <div className="flex flex-wrap gap-2 mt-2">{["Weekdays", "Weekday evenings", "Weekends", "Flexible", "Only remote"].map((k) => <button type="button" key={k} className="chip" aria-pressed={d.availability === k} onClick={() => set("availability", k)}>{k}</button>)}</div>{E("availability")}</fieldset>

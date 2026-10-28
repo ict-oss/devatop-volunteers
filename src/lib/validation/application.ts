@@ -15,7 +15,7 @@ export const applicationSchema = z.object({
   occupation: z.string().trim().max(80).optional().default(""),
   nysc: z.string().trim().max(30).optional().default(""),
   skills: z.array(text(40)).min(1).max(20),
-  departmentIds: z.array(z.uuid()).min(1).max(12),
+  departmentIds: z.array(z.uuid()).max(12), // may be empty: a new site may have no areas set up yet, and an admin confirms where each person starts
   availability: text(40),
   languages: z.array(text(30)).max(12).default([]),
   heard: z.string().trim().max(60).optional().default(""),

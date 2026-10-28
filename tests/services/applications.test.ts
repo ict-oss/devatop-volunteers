@@ -23,12 +23,18 @@ describe("validation (shared by the form and the server)", () => {
   it.each([
     ["no first name", { first: "  " }], ["bad phone", { phone: "abc" }], ["unknown state", { state: "Atlantis" }],
     ["future date of birth", { dob: "2999-01-01" }], ["nonsense date", { dob: "2001-13-45" }], ["no skills", { skills: [] }],
-    ["no department", { departmentIds: [] }], ["department id not an id", { departmentIds: ["comms"] }], ["unknown consent", { consents: ["conduct", "other"] }],
+    ["department id not an id", { departmentIds: ["comms"] }], ["unknown consent", { consents: ["conduct", "other"] }],
   ])("rejects %s", (_n, over) => expect(() => adultInput(over)).toThrow());
   it("works out age on a given day", () => { expect(ageOn("2008-06-21", new Date("2026-06-20"))).toBe(17); expect(ageOn("2008-06-21", new Date("2026-06-21"))).toBe(18); });
 });
 
 describe("submitting an application", () => {
+  it("someone can apply when the site has no departments yet (an admin places them after approval)", async () => {
+    const id = await t.newPerson("nodept");
+    const r = await t.as(caller(id), (tx) => submitApplication(tx, id, "nodept@example.com", adultInput({ departmentIds: [] })));
+    expect((await t.h.svc<{ n: number }>("select count(*)::int n from application_departments where application_id=$1", [r.applicationId]))[0].n).toBe(0);
+  });
+
   it("an adult applies: profile, contact, private details, consents with exact wording, application and departments are all saved", async () => {
     const id = await t.newPerson("adult1");
     const r = await t.as(caller(id), (tx) => submitApplication(tx, id, "adult1@example.com", adultInput({ departmentIds: [dept, dept2] })));

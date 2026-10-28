@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { trusted } from "@/lib/server/caller";
+import { rowsOf } from "@/lib/services/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +13,8 @@ export async function GET() {
   const check = async (query: ReturnType<typeof sql>) => { try { await trusted().execute(query); return "ok"; } catch (e) { return `failed (${(e as { cause?: { code?: string } })?.cause?.code ?? (e as Error).name})`; } };
   const database = env.DATABASE_URL ? await check(sql`select 1`) : "no DATABASE_URL";
   const tables = database === "ok" ? await check(sql`select 1 from public.departments limit 1`) : "skipped";
+  const seeded = database === "ok" && tables === "ok" ? Number(rowsOf<{ n: number }>(await trusted().execute(sql`select count(*)::int as n from public.departments`))[0]?.n ?? 0) : 0;
   const mapView = database === "ok" ? await check(sql`select 1 from public.public_state_hours limit 1`) : "skipped";
-  const ready = Object.values(env).every(Boolean) && database === "ok" && tables === "ok" && mapView === "ok";
-  return Response.json({ ready, env, database, tables, mapView, hint: ready ? "All good." : "Fix the items that say false or failed, redeploy, and open this page again." }, { status: ready ? 200 : 503 });
+  const ready = Object.values(env).every(Boolean) && database === "ok" && tables === "ok" && mapView === "ok" && seeded > 0;
+  return Response.json({ ready, env, database, tables, mapView, departments: seeded, hint: ready ? "All good." : seeded === 0 && database === "ok" ? "The database has no departments: run npm run db:seed once (or add them in Admin > Departments)." : "Fix the items that say false or failed, redeploy, and open this page again." }, { status: ready ? 200 : 503 });
 }

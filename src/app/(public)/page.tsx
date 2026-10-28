@@ -128,7 +128,7 @@ export default async function Home() {
       </section>
 
       {/* WHERE YOU FIT — departments from data, never hard-coded */}
-      <section className="border-t border-ink">
+      {departments.length > 0 && <section className="border-t border-ink">
         <div className="mx-auto max-w-[1500px] px-4 md:px-8 py-16 grid md:grid-cols-12 gap-8">
           <h2 className="md:col-span-4 text-[length:var(--text-title)]" data-mask>What can your <em className="accent">hands</em> do?</h2>
           <ul className="md:col-span-8 grid sm:grid-cols-2 gap-x-8">
@@ -140,7 +140,7 @@ export default async function Home() {
             ))}
           </ul>
         </div>
-      </section>
+      </section>}
 
       {/* THE ROLL — opt-in names drifting like a ticker */}
       {numbers.roll.length > 0 && <section className="bg-orange text-ink overflow-hidden border-y border-ink py-6" aria-label="The Roll: volunteers who chose to be listed">

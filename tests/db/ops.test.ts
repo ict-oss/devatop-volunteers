@@ -191,7 +191,8 @@ describe("audit log: complete, private and append-only (rules 4 and 5)", () => {
     expect((await h.q(A2(sup), "select 1 from audit_logs")).length).toBeGreaterThan(0);
     expect(await h.q(A2(coord), "select 1 from audit_logs")).toHaveLength(0); // Coordinator: no audit.see in the matrix
     expect(await h.q(U(v), "select 1 from audit_logs")).toHaveLength(0);
-    const everything = JSON.stringify(await h.svc("select * from audit_logs"));
+    // only the descriptive fields: ids and timestamps are random and can contain any digits, such as "0803", by chance
+    const everything = JSON.stringify(await h.svc("select action, table_name, detail from audit_logs"));
     expect(everything).not.toMatch(/Zainab|Yusuf|@example\.com|@devatop\.org|0803/); // no names, emails or phone numbers
     expect(await one(h.svc<{ actor_id: string }>("select actor_id from audit_logs where action='volunteer.status' and detail->>'to'='suspended' and record_id=$1", [v]))).toMatchObject({ actor_id: sup });
   });

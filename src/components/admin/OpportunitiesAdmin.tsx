@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { createOpportunityAction, setPublishedAction, updateOpportunityAction } from "@/app/actions/admin";
+import { addStarterCallsAction, createOpportunityAction, setPublishedAction, updateOpportunityAction } from "@/app/actions/admin";
+import { Busy } from "@/components/Spinner";
 import { SKILLS, STATE_NAMES, fmtDate } from "@/lib/data";
 import type { OpportunityView } from "@/lib/services/opportunities";
 import { useAdmin } from "@/lib/useAdmin";
@@ -34,6 +35,13 @@ export function OpportunitiesAdmin({ opps, programmes, departments }: { opps: Op
   return (
     <div className="grid gap-8">
       <div><h1 className="text-5xl md:text-7xl">Opportunities</h1><p className="mt-1 text-sm">Create calls to action. Published ones appear on the public board straight away. <Link className="underline" href="/admin/attendance">Take attendance &rarr;</Link></p></div>
+      {edit && (
+        <div className="border-2 border-ink p-4 grid gap-2 max-w-3xl">
+          <b>Starter calls</b>
+          <p className="text-sm">One click publishes the 12 roles Devatop needs people for, so the Calls page is not empty: AI4Rights Community Manager, Content Creator for Devatop, AI4Rights Facilitator, Social Media Volunteer, Talkam Community Volunteer, Field Outreach, Policy and Research, Events and Logistics, ICT Support, Monitoring and Evaluation, Partnerships and Fundraising, and Translator. They are real calls: change the dates, places and numbers of places in the list below, unpublish or delete any you do not need. Roles that are already there are skipped, so it is safe to press twice.</p>
+          <div><button className="btn btn-sm" disabled={busy} onClick={() => act(addStarterCallsAction(), (r) => r.added ? `Published ${r.added} starter calls. Edit their dates below.` : "All the starter calls are already there.")}>{busy ? <Busy>Publishing…</Busy> : "Publish the starter calls"}</button></div>
+        </div>
+      )}
       {note}
       {edit ? (
         <form onSubmit={save} noValidate className="grid gap-4 border-2 border-ink p-4 md:p-6">

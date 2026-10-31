@@ -19,6 +19,7 @@ import { slotKind } from "@/lib/siteImages";
 import { addAdmin, adminInput, changeAdmin, removeAdmin, setVolunteerStatus, userIdByEmail } from "@/lib/services/users";
 import { friendly } from "@/lib/services/db";
 import { removeDemo, seedDemo } from "@/lib/db/demo";
+import { addStarterCalls } from "@/lib/services/starterCalls";
 import { rawSql } from "@/lib/db";
 import { sql } from "drizzle-orm";
 
@@ -217,3 +218,6 @@ export const removeDemoAction = async () => asAdmin("settings.edit", async (me) 
   await trusted().execute(sql`insert into audit_logs (actor_id, action, table_name, detail) values (${me.caller.sub}::uuid, 'demo.remove', 'demo', ${JSON.stringify({ volunteers: removed })}::jsonb)`);
   return ok({ removed });
 });
+
+/* ---------------------------------------------------------------- starter calls (real roles Devatop needs, editable like any call) */
+export const addStarterCallsAction = async () => asAdmin("opportunities.edit", async (me) => ok(await asCaller(me.caller, (tx) => addStarterCalls(tx))));

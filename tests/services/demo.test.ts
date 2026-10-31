@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { seedOnce } from "../../src/lib/db/seed";
 import { demoCount, demoSummary, removeDemo, seedDemo } from "../../src/lib/db/demo";
-import { publicNumbers } from "../../src/lib/services/public";
+import { publicNumbers, stateHoursForMap } from "../../src/lib/services/public";
 import { freshServices } from "./setup";
 
 let t: Awaited<ReturnType<typeof freshServices>>;
@@ -22,7 +22,7 @@ describe("temporary demo volunteers", () => {
     expect(await demoSummary(run)).toMatchObject({ volunteers: 24, calls: 6, announcements: 2 });
     expect((await run("select count(*)::int as n from hour_logs where status = 'pending' and activity like '%(Temp)'"))[0].n).toBeGreaterThan(0);
     const n = await t.as("anon", (tx) => publicNumbers(tx));
-    expect(n.volunteers).toBe(25); expect(n.hours).toBeGreaterThan(500); expect(n.states).toBeGreaterThanOrEqual(15); expect(n.stateHours.lagos).toBeGreaterThan(0);
+    expect(n.volunteers).toBe(25); expect(n.hours).toBeGreaterThan(500); expect(n.states).toBeGreaterThanOrEqual(15); expect((await stateHoursForMap(t.owner)).lagos).toBeGreaterThan(0); expect(Object.keys(await stateHoursForMap(t.owner)).length).toBeGreaterThanOrEqual(15);
     expect(await removeDemo(run)).toBe(24);
     expect((await run("select count(*)::int as n from opportunities"))[0].n).toBe(0);
     expect((await run("select count(*)::int as n from messages"))[0].n).toBe(0);

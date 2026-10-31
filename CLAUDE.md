@@ -84,7 +84,7 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 
 ## Gotchas
 - Windows 260-character path limit: keep the repo in a short path (for example `C:\dv\devatop-volunteers`); deep folders break git and esbuild.
-- Use the Supabase **Session pooler** connection string for `DATABASE_URL` (the direct address needs IPv6).
+- Use the Supabase **Session pooler** string (port 5432) for `DATABASE_URL` on your own computer (migrate, seed). In **Vercel** use the **Transaction pooler** string (port 6543): it allows many more clients, and too many connections shows as XX000 on `/api/health`. The direct address needs IPv6.
 - Facts marked "(confirm)" in the copy (sender address, review days, minimum age 16, event times, coordinator phone) must be checked by Devatop before launch.
 - The site is an installable web app (PWA): `src/app/manifest.ts`, `public/sw.js` (caches only `/offline.html`, never personal pages), logos in `public/brand/`, tab icon `src/app/icon.png` + `favicon.ico`, install icons in `public/icons/` and the certificate mark `src/lib/pdf/brandMark.ts` are all generated from the two supplied logo files by `node tools/make-brand.mjs <devatop file> <talkam file>`.
 - Starter calls: Admin > Opportunities > "Publish the starter calls" adds the 12 roles Devatop needs (AI4Rights Community Manager, Content Creator, AI4Rights Facilitator and more, `src/lib/services/starterCalls.ts`). They are real calls, editable like any other.

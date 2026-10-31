@@ -10,7 +10,18 @@ const REQUIRED = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "
 /** Open /api/health to see what is missing after a deploy. It reports only names and yes/no: never a value, a name of a person or a database message. */
 export async function GET() {
   const env = Object.fromEntries(REQUIRED.map((k) => [k, !!process.env[k]]));
-  const check = async (query: ReturnType<typeof sql>) => { try { await trusted().execute(query); return "ok"; } catch (e) { return `failed (${(e as { cause?: { code?: string } })?.cause?.code ?? (e as Error).name})`; } };
+  /** A plain category for a database failure. Never the message itself: it could contain a host or user name. */
+  const why = (e: unknown) => {
+    const m = `${(e as { cause?: { message?: string } })?.cause?.message ?? ""} ${(e as Error)?.message ?? ""}`;
+    if (/tenant or user not found/i.test(m)) return "tenant_or_user_not_found: the pooler user is wrong (it must look like postgres.PROJECTREF) or the Supabase project is paused";
+    if (/password authentication failed|invalid password|SASL/i.test(m)) return "wrong_password: the password in DATABASE_URL is not the current database password";
+    if (/ENOTFOUND|getaddrinfo|EAI_AGAIN/i.test(m)) return "host_not_found: the host in DATABASE_URL is wrong (use the Session pooler string, not the direct one)";
+    if (/ECONNREFUSED|ETIMEDOUT|timeout|ECONNRESET/i.test(m)) return "cannot_reach: the database did not answer (project paused or wrong port)";
+    if (/too many|max clients|remaining connection slots/i.test(m)) return "too_many_connections";
+    if (/ssl|certificate/i.test(m)) return "ssl_problem";
+    return "other";
+  };
+  const check = async (query: ReturnType<typeof sql>) => { try { await trusted().execute(query); return "ok"; } catch (e) { return `failed (${(e as { cause?: { code?: string } })?.cause?.code ?? (e as Error).name}) ${why(e)}`; } };
   const database = env.DATABASE_URL ? await check(sql`select 1`) : "no DATABASE_URL";
   const tables = database === "ok" ? await check(sql`select 1 from public.departments limit 1`) : "skipped";
   const seeded = database === "ok" && tables === "ok" ? Number(rowsOf<{ n: number }>(await trusted().execute(sql`select count(*)::int as n from public.departments`))[0]?.n ?? 0) : 0;

@@ -65,3 +65,13 @@ A Super Admin can fill the site with made-up data from **Admin > Demo data** (bu
 It adds 24 demo volunteers across 24 states with approved hours (so the home page numbers and the map fill in), some pending hours, 6 demo calls with sign-ups, and 2 announcements. Every demo item is marked: "(Temp)" after the volunteer's first name, in the title of each call and announcement and in the hours' activity text, and demo volunteers have an email ending `@demo.devatop.invalid`. Adding twice is safe. Removing deletes exactly those items and nothing real.
 
 The demo hours count in the public figures, so **remove the demo data before you tell anyone the numbers are real.** Run `npm run db:seed` first so the departments and programmes exist. Approved hours need a deciding admin, which is why you must be signed in as a Super Admin.
+
+
+## Database connection on Vercel (read this if pages say "Something went wrong")
+
+Supabase limits how many connections can be open at once. Vercel runs several copies of the site, each with its own connections. If the limit is reached, every page fails and `/api/health` says `too_many_connections` (code XX000, "max clients reached").
+
+- In **Vercel**, set `DATABASE_URL` to the **Transaction pooler** string (Supabase > Connect > Transaction pooler: port **6543**, user `postgres.yourprojectref`). It allows many more clients. The site already works with it (it does not use prepared statements).
+- On **your computer** (`.env.local`), keep the **Session pooler** string (port 5432) for `npm run db:migrate`, `db:seed` and `db:demo`.
+- Each copy of the site keeps at most 3 connections and closes idle ones after 15 seconds. `DB_POOL_MAX` can change that number.
+- Short-term relief: wait two or three minutes (idle connections close) or restart the database in Supabase > Project Settings > General > Restart project.

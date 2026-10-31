@@ -59,8 +59,8 @@ export function NigeriaMap({ hours: STATE_HOURS }: { hours: Record<string, numbe
         </g>
       </svg>
       <div className="pointer-events-none absolute left-0 top-0 min-h-[4.5rem] bg-ink text-paper px-4 py-3" style={{ opacity: st ? 1 : 0.0001 }} aria-live="polite">
-        <div className="display text-3xl leading-none">{st?.name ?? "—"}</div>
-        <div className="text-sm mt-1">{st ? (STATE_HOURS[st.id] ? `${money(STATE_HOURS[st.id])} hours given` : "No volunteer hours here yet — be the first") : ""}</div>
+        <div className="display text-3xl leading-none">{st?.name ?? "Point at a state"}</div>
+        <div className="text-sm mt-1">{st ? (STATE_HOURS[st.id] ? `${money(STATE_HOURS[st.id])} hours given` : "No volunteer hours here yet. Be the first.") : ""}</div>
       </div>
     </div>
   );

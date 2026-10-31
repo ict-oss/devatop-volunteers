@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { seedOnce } from "../../src/lib/db/seed";
-import { demoCount, removeDemo, seedDemo } from "../../src/lib/db/demo";
+import { demoCount, demoSummary, removeDemo, seedDemo } from "../../src/lib/db/demo";
 import { publicNumbers } from "../../src/lib/services/public";
 import { freshServices } from "./setup";
 
@@ -12,17 +12,20 @@ describe("temporary demo volunteers", () => {
   it("adds ten, shows them in the public numbers, never doubles up, and removes exactly them", async () => {
     const real = await t.h.activeVolunteer("demo-real", { state: "Lagos" }); // a real volunteer must survive the removal
     await t.h.admin("demo-admin", "super_admin");
-    expect(await seedDemo(run)).toEqual({ added: 10, withHours: true, calls: 6 });
-    expect(await demoCount(run)).toBe(10);
+    expect(await seedDemo(run)).toEqual({ added: 24, withHours: true, calls: 6 });
+    expect(await demoCount(run)).toBe(24);
     expect(await seedDemo(run)).toEqual({ added: 0, withHours: true, calls: 0 });
     // every demo person and call is labelled, and the calls show places taken
-    expect((await run("select count(*)::int as n from volunteer_profiles where first_name like '%(Temp)%'"))[0].n).toBe(10);
+    expect((await run("select count(*)::int as n from volunteer_profiles where first_name like '%(Temp)%'"))[0].n).toBe(24);
     expect((await run("select count(*)::int as n from opportunities where title like '%(Temp)%' and starts_at > now()"))[0].n).toBe(6);
     expect((await run("select count(*)::int as n from signups"))[0].n).toBe(13);
+    expect(await demoSummary(run)).toMatchObject({ volunteers: 24, calls: 6, announcements: 2 });
+    expect((await run("select count(*)::int as n from hour_logs where status = 'pending' and activity like '%(Temp)'"))[0].n).toBeGreaterThan(0);
     const n = await t.as("anon", (tx) => publicNumbers(tx));
-    expect(n.volunteers).toBe(11); expect(n.hours).toBeGreaterThan(100); expect(n.states).toBeGreaterThanOrEqual(8); expect(n.stateHours.lagos).toBeGreaterThan(0);
-    expect(await removeDemo(run)).toBe(10);
+    expect(n.volunteers).toBe(25); expect(n.hours).toBeGreaterThan(500); expect(n.states).toBeGreaterThanOrEqual(15); expect(n.stateHours.lagos).toBeGreaterThan(0);
+    expect(await removeDemo(run)).toBe(24);
     expect((await run("select count(*)::int as n from opportunities"))[0].n).toBe(0);
+    expect((await run("select count(*)::int as n from messages"))[0].n).toBe(0);
     expect(await demoCount(run)).toBe(0);
     const after = await t.as("anon", (tx) => publicNumbers(tx));
     expect(after).toMatchObject({ volunteers: 1, hours: 0, states: 1 });

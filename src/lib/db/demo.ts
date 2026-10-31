@@ -7,20 +7,35 @@
  */
 export const DEMO_DOMAIN = "demo.devatop.invalid";
 export const TEMP = "(Temp)";
-export const CALL_MARK = "Temporary demo call. Safe to delete.";
+export const CALL_MARK = "Temporary demo data. Safe to delete.";
 type Run = (text: string, params?: unknown[]) => Promise<Record<string, unknown>[]>;
 
+const P = (first: string, last: string, state: string, lga: string, skills: string[], hours: number[], depts: string[]) => ({ first, last, state, lga, skills, hours, depts });
 const PEOPLE: { first: string; last: string; state: string; lga: string; skills: string[]; hours: number[]; depts: string[] }[] = [
-  { first: "Amaka", last: "Obi", state: "Lagos", lga: "Yaba", skills: ["Design", "Social media"], hours: [4, 6, 3, 5], depts: ["Communications and Media"] },
-  { first: "Tunde", last: "Ajayi", state: "Lagos", lga: "Ikeja", skills: ["Event support"], hours: [5, 5, 4], depts: ["Events and Logistics"] },
-  { first: "Hadiza", last: "Bello", state: "Kano", lga: "Fagge", skills: ["Translation", "Counselling"], hours: [6, 5, 5], depts: ["Talkam"] },
-  { first: "Chidi", last: "Eze", state: "Enugu", lga: "Enugu North", skills: ["Photography", "Video"], hours: [8, 4], depts: ["Communications and Media"] },
-  { first: "Ngozi", last: "Udeh", state: "Anambra", lga: "Awka South", skills: ["Teaching"], hours: [4, 4, 3], depts: ["AI4Rights"] },
-  { first: "Ibrahim", last: "Sani", state: "FCT Abuja", lga: "Gwagwalada", skills: ["Data", "Research"], hours: [5, 6, 4], depts: ["Policy and Research", "ICT"] },
-  { first: "Funke", last: "Balogun", state: "Lagos", lga: "Eti-Osa", skills: ["Design"], hours: [3, 3], depts: ["Communications and Media"] },
-  { first: "Emeka", last: "Nwosu", state: "Rivers", lga: "Port Harcourt", skills: ["Public speaking"], hours: [6, 6, 5], depts: ["Programmes and Field Outreach"] },
-  { first: "Zainab", last: "Yusuf", state: "Kaduna", lga: "Kaduna South", skills: ["Teaching", "Writing"], hours: [4, 5], depts: ["AI4Rights"] },
-  { first: "Seun", last: "Adeleke", state: "Oyo", lga: "Ibadan North", skills: ["Web / tech"], hours: [5, 3, 4], depts: ["ICT"] },
+  P("Amaka", "Obi", "Lagos", "Yaba", ["Design", "Social media"], [4, 6, 3, 5, 6, 4], ["Communications and Media"]),
+  P("Tunde", "Ajayi", "Lagos", "Ikeja", ["Event support"], [5, 5, 4, 6, 5], ["Events and Logistics"]),
+  P("Funke", "Balogun", "Lagos", "Eti-Osa", ["Design"], [3, 3, 5, 4], ["Communications and Media"]),
+  P("Kemi", "Lawal", "Lagos", "Surulere", ["Teaching", "Research"], [6, 6, 4, 5, 3], ["AI4Rights", "Policy and Research"]),
+  P("Hadiza", "Bello", "Kano", "Fagge", ["Translation", "Counselling"], [6, 5, 5, 4], ["Talkam"]),
+  P("Musa", "Danladi", "Kano", "Nassarawa", ["Translation"], [5, 4, 6], ["Talkam"]),
+  P("Chidi", "Eze", "Enugu", "Enugu North", ["Photography", "Video"], [8, 4, 6], ["Communications and Media"]),
+  P("Ngozi", "Udeh", "Anambra", "Awka South", ["Teaching"], [4, 4, 3, 5], ["AI4Rights"]),
+  P("Ibrahim", "Sani", "FCT Abuja", "Gwagwalada", ["Data", "Research"], [5, 6, 4, 6], ["Policy and Research", "ICT"]),
+  P("Aisha", "Garba", "FCT Abuja", "Bwari", ["Public speaking"], [4, 5, 5], ["Programmes and Field Outreach"]),
+  P("Emeka", "Nwosu", "Rivers", "Port Harcourt", ["Public speaking"], [6, 6, 5, 4], ["Programmes and Field Outreach"]),
+  P("Blessing", "Okon", "Akwa Ibom", "Uyo", ["Writing"], [4, 3, 4], ["Communications and Media"]),
+  P("Zainab", "Yusuf", "Kaduna", "Kaduna South", ["Teaching", "Writing"], [4, 5, 6], ["AI4Rights"]),
+  P("Seun", "Adeleke", "Oyo", "Ibadan North", ["Web / tech"], [5, 3, 4, 5], ["ICT"]),
+  P("Tobi", "Fashola", "Ogun", "Abeokuta South", ["Event support"], [4, 4, 3], ["Events and Logistics"]),
+  P("Ada", "Nnamdi", "Imo", "Owerri", ["Counselling"], [5, 4], ["Talkam"]),
+  P("Yakubu", "Mohammed", "Borno", "Maiduguri", ["Translation"], [6, 5], ["Talkam"]),
+  P("Efe", "Oghene", "Delta", "Warri", ["Video"], [4, 6, 3], ["Communications and Media"]),
+  P("Grace", "Eyo", "Cross River", "Calabar", ["Fundraising"], [3, 4, 4], ["Partnerships and Fundraising"]),
+  P("Sani", "Abdullahi", "Sokoto", "Sokoto North", ["Data"], [4, 5], ["Monitoring and Evaluation"]),
+  P("Ify", "Chukwu", "Ebonyi", "Abakaliki", ["Writing", "Research"], [5, 4, 3], ["Policy and Research"]),
+  P("Dami", "Ogunleye", "Osun", "Osogbo", ["Social media"], [3, 5, 4], ["Communications and Media"]),
+  P("Ruth", "Gyang", "Plateau", "Jos North", ["Teaching"], [6, 4, 5], ["AI4Rights"]),
+  P("Abubakar", "Lawan", "Bauchi", "Bauchi", ["Public speaking"], [5, 5], ["Programmes and Field Outreach"]),
 ];
 
 const CALLS: { title: string; programme: string; state: string | null; place: string | null; mode: "physical" | "remote"; inDays: number; hours: number; slots: number; skills: string[]; commitment: string; signups: number }[] = [
@@ -50,7 +65,8 @@ export async function seedDemo(run: Run): Promise<{ added: number; withHours: bo
       await run(`insert into volunteer_contacts (user_id, email, phone) values ($1,$2,'0800 000 0000')`, [id, email]);
       for (const d of p.depts) await run(`insert into department_memberships (user_id, department_id, status, joined_at) select $1, id, 'active', now() from departments where name = $2`, [id, d]);
       if (admin) for (const [j, h] of p.hours.entries())
-        await run(`insert into hour_logs (user_id, activity, worked_on, hours, method, status, decided_by, decided_at) values ($1,$2, current_date - $3::int, $4, 'coordinator', 'approved', $5, now())`, [id, "Demo activity (Temp)", 3 + j * 9 + i, h, admin]);
+        await run(`insert into hour_logs (user_id, activity, worked_on, hours, method, status, decided_by, decided_at) values ($1,$2, current_date - $3::int, $4, 'coordinator', 'approved', $5, now())`, [id, "Demo activity (Temp)", 3 + j * 9 + i, h * 2, admin]);
+      if (admin && i % 3 === 0) await run(`insert into hour_logs (user_id, activity, worked_on, hours, method, status) values ($1,'Demo activity waiting for approval (Temp)', current_date - 1, $2, 'remote_log', 'pending')`, [id, 2 + (i % 4)]);
       added++;
     }
   } else {
@@ -73,15 +89,33 @@ export async function seedDemo(run: Run): Promise<{ added: number; withHours: bo
       calls++;
     }
   }
+
+  // two demo announcements for the volunteers' board
+  if (Number((await run(`select count(*)::int as n from messages where body like $1`, [`%${CALL_MARK}`]))[0]?.n ?? 0) === 0) {
+    await run(`insert into messages (kind, subject, body, audience, recipient_count) values ('announcement', 'Welcome to the volunteer platform (Temp)', $1, '{}', 0), ('announcement', 'Calls for the coming weeks are open (Temp)', $2, '{}', 0)`,
+      [`This is a temporary demo announcement. ${CALL_MARK}`, `Pick a call and sign up in one tap. This is a temporary demo announcement. ${CALL_MARK}`]);
+  }
   return { added, withHours: !!admin, calls };
 }
 
 /** Removes every demo volunteer and their hours. Real volunteers are never touched (the match is on the demo email domain only). */
 export async function removeDemo(run: Run): Promise<number> {
   await run(`delete from opportunities where description = $1`, [CALL_MARK]); // their demo sign-ups go with them
+  await run(`delete from messages where body like $1`, [`%${CALL_MARK}`]);
   const ids = (await run(`select id from auth.users where email like $1`, [`%@${DEMO_DOMAIN}`])).map((r) => r.id as string);
   if (!ids.length) return 0;
   await run(`delete from hour_logs where user_id = any($1::uuid[])`, [ids]);
   await run(`delete from auth.users where id = any($1::uuid[])`, [ids]); // cascades the profile, contacts and department memberships
   return ids.length;
+}
+
+/** What is currently in the database from the demo tool, so the admin can see it before deleting. */
+export async function demoSummary(run: Run): Promise<{ volunteers: number; calls: number; announcements: number; hours: number }> {
+  const n = async (q: string, p: unknown[]) => Number((await run(q, p))[0]?.n ?? 0);
+  return {
+    volunteers: await demoCount(run),
+    calls: await n(`select count(*)::int as n from opportunities where description = $1`, [CALL_MARK]),
+    announcements: await n(`select count(*)::int as n from messages where body like $1`, [`%${CALL_MARK}`]),
+    hours: Math.round(await n(`select coalesce(sum(h.hours), 0) as n from hour_logs h join auth.users u on u.id = h.user_id where u.email like $1 and h.status = 'approved'`, [`%@${DEMO_DOMAIN}`])),
+  };
 }

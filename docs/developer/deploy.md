@@ -58,8 +58,10 @@ To switch email on later: verify the sender in Brevo, set `BREVO_API_KEY` and `E
 { "crons": [{ "path": "/api/cron/reminders", "schedule": "0 15 * * *" }] }
 ```
 
-## Temporary demo volunteers and calls (preview only)
+## Temporary demo data (preview only)
 
-`npm run db:demo` adds 10 demo volunteers and 6 demo calls so the home numbers, the map, the calls board and the Admin screens show something. Every demo volunteer has "(Temp)" after their first name (and an email ending `@demo.devatop.invalid`), and every demo call has "(Temp)" in its title, so they are obvious on screen. Running it again is safe (it only fills what is missing, and labels people added by an older version).
+A Super Admin can fill the site with made-up data from **Admin > Demo data** (button "Add demo data"), and delete all of it again with "Remove all demo data". No terminal is needed. (`npm run db:demo` and `npm run db:demo:remove` do the same from a computer.)
 
-They count in the public figures like real volunteers, so **remove them before launch**: `npm run db:demo:remove` deletes exactly those people, their hours, and the demo calls with their sign-ups, and nothing else. Approved hours need a deciding admin, so sign in as a Super Admin once before adding them. Run `npm run db:seed` first so departments and programmes exist.
+It adds 24 demo volunteers across 24 states with approved hours (so the home page numbers and the map fill in), some pending hours, 6 demo calls with sign-ups, and 2 announcements. Every demo item is marked: "(Temp)" after the volunteer's first name, in the title of each call and announcement and in the hours' activity text, and demo volunteers have an email ending `@demo.devatop.invalid`. Adding twice is safe. Removing deletes exactly those items and nothing real.
+
+The demo hours count in the public figures, so **remove the demo data before you tell anyone the numbers are real.** Run `npm run db:seed` first so the departments and programmes exist. Approved hours need a deciding admin, which is why you must be signed in as a Super Admin.

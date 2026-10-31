@@ -235,6 +235,16 @@ async function login(page, email) {
     await tobi.p.goto(BASE + "/admin/admins"); await tobi.p.waitForURL(/not-allowed/);
   });
 
+  await step("demo data: a Super Admin adds it from Admin > Demo data, it shows everywhere marked (Temp), then removes it all", async () => {
+    await admin.p.goto(BASE + "/admin/demo"); await expectText(admin.p, "No demo data is in the database");
+    await admin.p.getByRole("button", { name: "Add demo data" }).click(); await expectText(admin.p, "Added 24 demo volunteers");
+    await admin.p.goto(BASE + "/admin/volunteers"); await admin.p.locator("tr", { hasText: "(Temp)" }).first().waitFor();
+    await visitor.p.goto(BASE + "/"); const hours = await visitor.p.locator("[data-count]").first().getAttribute("data-count"); if (!(Number(hours) > 500)) throw new Error("home hours not filled: " + hours);
+    await visitor.p.goto(BASE + "/opportunities"); await expectText(visitor.p, "(Temp)");
+    await admin.p.goto(BASE + "/admin/demo"); await expectText(admin.p, "24 demo volunteers");
+    await admin.p.getByRole("button", { name: "Remove all demo data" }).click(); await expectText(admin.p, "Removed 24 demo volunteers");
+    await admin.p.goto(BASE + "/admin/volunteers"); if (await admin.p.locator("tr", { hasText: "(Temp)" }).count()) throw new Error("demo volunteers are still listed");
+  });
   await step("a volunteer can sign out from the header, and then the portal needs a new sign-in", async () => {
     await tobi.p.goto(BASE + "/dashboard"); await expectText(tobi.p, "Sign out");
     if (await tobi.p.getByText("Public site").count()) throw new Error("the Public site link is still in the volunteer header");

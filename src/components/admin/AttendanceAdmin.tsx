@@ -54,7 +54,7 @@ export function AttendanceAdmin({ opps, selected, roster }: { opps: OpportunityV
                 <label className="flex items-center gap-4 min-h-14 cursor-pointer">
                   <input type="checkbox" className="size-7 accent-[#16130F]" disabled={!mark || busy} checked={r.present} onChange={(e) => act(setPresentAction(selected.id, r.userId, e.target.checked), "")} aria-label={`Mark ${r.name} present`} />
                   <span className="font-bold flex-1">{r.name}{r.walkIn && <span className="stamp stamp-info ml-2">Walk-in</span>}{r.signupStatus === "waitlisted" && <span className="stamp stamp-wait ml-2">Waitlist</span>}</span>
-                  <span className="text-sm">{r.checkedOutAt ? <span className="stamp stamp-ok">{r.method === "qr" ? "QR in/out" : "Done"}</span> : r.checkedInAt ? <span className="stamp stamp-info">{r.method === "qr" ? "Checked in" : "Present"}</span> : <span className="opacity-50">&mdash;</span>}</span>
+                  <span className="text-sm">{r.checkedOutAt ? <span className="stamp stamp-ok">{r.method === "qr" ? "QR in/out" : "Done"}</span> : r.checkedInAt ? <span className="stamp stamp-info">{r.method === "qr" ? "Checked in" : "Present"}</span> : <span className="opacity-50">Not yet</span>}</span>
                 </label>
               </li>))}
           </ul>

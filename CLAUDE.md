@@ -87,4 +87,6 @@ Source of truth for features: `docs/requirements.md` (the original PDF is next t
 - Use the Supabase **Session pooler** connection string for `DATABASE_URL` (the direct address needs IPv6).
 - Facts marked "(confirm)" in the copy (sender address, review days, minimum age 16, event times, coordinator phone) must be checked by Devatop before launch.
 - The site is an installable web app (PWA): `src/app/manifest.ts`, `public/sw.js` (caches only `/offline.html`, never personal pages), logos in `public/brand/`, tab icon `src/app/icon.png` + `favicon.ico`, install icons in `public/icons/` and the certificate mark `src/lib/pdf/brandMark.ts` are all generated from the two supplied logo files by `node tools/make-brand.mjs <devatop file> <talkam file>`.
+- Temporary demo data: Admin > Demo data (Super Admin) adds and removes 24 volunteers, calls, hours and announcements, all marked "(Temp)" (`src/lib/db/demo.ts`); also `npm run db:demo` / `db:demo:remove`. Remove before launch.
+- No em dashes, en dashes or spaced hyphens in text people read on the site (owner's rule): use a comma, colon or full stop.
 - The home page numbers (volunteers, hours, states, map, the Roll) are real and start at zero on a new site. There are no invented testimonials: add real ones only with the volunteer's consent on record.

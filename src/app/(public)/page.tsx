@@ -57,7 +57,7 @@ export default async function Home() {
         <LoopVideo slot="loop-tally" label="Tally marks being counted, one after another" className="w-full" />
       </section>
 
-      {/* NUMBERS AS ARCHITECTURE — orange field */}
+      {/* NUMBERS AS ARCHITECTURE: orange field */}
       <section className="relative mt-24 md:mt-32 text-ink overflow-hidden" aria-label="Impact">
         <div data-wipe className="absolute inset-0 bg-orange" aria-hidden="true" />
         <div className="relative mx-auto max-w-[1500px] px-4 md:px-8 py-14 md:py-20">
@@ -97,7 +97,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* CALLS TO ACTION BOARD — ink field */}
+      {/* CALLS TO ACTION BOARD: ink field */}
       <section className="bg-ink text-paper" aria-labelledby="calls">
         <div className="mx-auto max-w-[1500px] px-4 md:px-8 py-16 md:py-24">
           <div className="flex flex-wrap items-end justify-between gap-6 mb-8">
@@ -108,7 +108,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* HOW IT WORKS — rules, not boxes */}
+      {/* HOW IT WORKS: rules, not boxes */}
       <section className="mx-auto max-w-[1500px] px-4 md:px-8 py-20 md:py-28">
         <h2 className="text-[length:var(--text-display)] max-w-4xl" data-mask>Apply once. <em className="accent">Act</em> often. Get counted.</h2>
         <div className="mt-12 grid md:grid-cols-4 gap-x-8">
@@ -127,7 +127,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* WHERE YOU FIT — departments from data, never hard-coded */}
+      {/* WHERE YOU FIT: departments from data, never hard-coded */}
       {departments.length > 0 && <section className="border-t border-ink">
         <div className="mx-auto max-w-[1500px] px-4 md:px-8 py-16 grid md:grid-cols-12 gap-8">
           <h2 className="md:col-span-4 text-[length:var(--text-title)]" data-mask>What can your <em className="accent">hands</em> do?</h2>
@@ -142,9 +142,9 @@ export default async function Home() {
         </div>
       </section>}
 
-      {/* THE ROLL — opt-in names drifting like a ticker */}
+      {/* THE ROLL: opt-in names drifting like a ticker */}
       {numbers.roll.length > 0 && <section className="bg-orange text-ink overflow-hidden border-y border-ink py-6" aria-label="The Roll: volunteers who chose to be listed">
-        <div className="px-4 md:px-8 mx-auto max-w-[1500px] mb-2 font-bold uppercase tracking-widest text-sm">The Roll — volunteers who said yes to being listed</div>
+        <div className="px-4 md:px-8 mx-auto max-w-[1500px] mb-2 font-bold uppercase tracking-widest text-sm">The Roll: volunteers who said yes to being listed</div>
         <div className="ticker" data-ticker="70" aria-hidden="true">
           {[...numbers.roll, ...numbers.roll].map((n, i) => (
             <span key={i} className="display text-[clamp(3.5rem,10vw,8rem)] whitespace-nowrap pr-10">{n} <span className="opacity-40">/</span></span>

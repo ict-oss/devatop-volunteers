@@ -7,15 +7,17 @@ import { InkArrow, ArrowRight } from "@/components/Marks";
 import { CallsBoard } from "@/components/CallsBoard";
 import { money } from "@/lib/data";
 import { STATES } from "@/lib/nigeria-map";
-import { activeDepartments, publicNumbers, publicSettings, type PublicNumbers } from "@/lib/services/public";
-import { asVisitor } from "@/lib/server/caller";
+import { activeDepartments, publicNumbers, publicSettings, stateHoursForMap, type PublicNumbers } from "@/lib/services/public";
+import { asVisitor, trusted } from "@/lib/server/caller";
 
 export const dynamic = "force-dynamic"; // the numbers are live
 
 export default async function Home() {
   // the numbers are a nice-to-have: if their database view is not installed yet, the page still opens (with zeros) instead of failing.
   // They get their own transaction, because a failed query would otherwise spoil the next ones in the same transaction.
-  const numbers = await asVisitor((tx) => publicNumbers(tx)).catch((): PublicNumbers => ({ volunteers: 0, hours: 0, states: 0, stateHours: {}, roll: [] }));
+  const totals = await asVisitor((tx) => publicNumbers(tx)).catch((): PublicNumbers => ({ volunteers: 0, hours: 0, states: 0, roll: [] }));
+  const stateHours = await stateHoursForMap(trusted()).catch((): Record<string, number> => ({})); // the trusted connection, after the visitor query has finished
+  const numbers = { ...totals, stateHours };
   const { departments, settings } = await asVisitor(async (tx) => ({ departments: await activeDepartments(tx), settings: await publicSettings(tx) }));
   const stateName = (id: string) => STATES.find((x) => x.id === id)?.name.replace(/([a-z])([A-Z])/g, "$1 $2").replace("Federal Capital Territory", "FCT Abuja") ?? id;
   const topStates = Object.entries(numbers.stateHours).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id, h]) => [stateName(id), h] as const);

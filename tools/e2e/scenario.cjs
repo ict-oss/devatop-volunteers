@@ -240,10 +240,17 @@ async function login(page, email) {
     await admin.p.getByRole("button", { name: "Add demo data" }).click(); await expectText(admin.p, "Added 24 demo volunteers");
     await admin.p.goto(BASE + "/admin/volunteers"); await admin.p.locator("tr", { hasText: "(Temp)" }).first().waitFor();
     await visitor.p.goto(BASE + "/"); const hours = await visitor.p.locator("[data-count]").first().getAttribute("data-count"); if (!(Number(hours) > 500)) throw new Error("home hours not filled: " + hours);
+    const hot = await visitor.p.locator(".state-hot").count(); if (hot < 15) throw new Error("the map shows only " + hot + " states with hours");
+    await expectText(visitor.p, "hrs"); if (await visitor.p.getByText("No hours are logged yet").count()) throw new Error("home still says no hours are logged");
     await visitor.p.goto(BASE + "/opportunities"); await expectText(visitor.p, "(Temp)");
     await admin.p.goto(BASE + "/admin/demo"); await expectText(admin.p, "24 demo volunteers");
     await admin.p.getByRole("button", { name: "Remove all demo data" }).click(); await expectText(admin.p, "Removed 24 demo volunteers");
     await admin.p.goto(BASE + "/admin/volunteers"); if (await admin.p.locator("tr", { hasText: "(Temp)" }).count()) throw new Error("demo volunteers are still listed");
+  });
+  await step("starter calls: one click publishes the roles Devatop needs and they show on the public board", async () => {
+    await admin.p.goto(BASE + "/admin/opportunities"); await admin.p.getByRole("button", { name: "Publish the starter calls" }).click(); await expectText(admin.p, "Published 12 starter calls");
+    await visitor.p.goto(BASE + "/opportunities"); await expectText(visitor.p, "AI4Rights Community Manager"); await expectText(visitor.p, "Content Creator, Devatop Centre for African Development"); await expectText(visitor.p, "AI4Rights Facilitator");
+    await admin.p.goto(BASE + "/admin/opportunities"); await admin.p.getByRole("button", { name: "Publish the starter calls" }).click(); await expectText(admin.p, "already there");
   });
   await step("a volunteer can sign out from the header, and then the portal needs a new sign-in", async () => {
     await tobi.p.goto(BASE + "/dashboard"); await expectText(tobi.p, "Sign out");

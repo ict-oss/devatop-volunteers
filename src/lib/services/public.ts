@@ -18,17 +18,24 @@ export async function allProgrammes(db: Db) {
   return db.select({ id: programmes.id, name: programmes.name }).from(programmes).where(eq(programmes.active, true)).orderBy(asc(programmes.name));
 }
 
-export type PublicNumbers = { volunteers: number; hours: number; states: number; stateHours: Record<string, number>; roll: string[] };
+export type PublicNumbers = { volunteers: number; hours: number; states: number; roll: string[] };
 const toId = (name: string) => (/^fct/i.test(name) ? "federalcapitalterritory" : name.toLowerCase().replace(/[^a-z]/g, ""));
 
-/** The real numbers on the home page: totals, hours per state (map ids) and the names of volunteers who chose to be on the Roll ("Amaka O."). */
+/** The totals on the home page and the names of volunteers who chose to be on the Roll ("Amaka O."). Reads the public views, as a visitor. */
 export async function publicNumbers(db: Db): Promise<PublicNumbers> {
   const stats = rowsOf<{ volunteers: number; hours: string; states: number }>(await db.execute(sql`select volunteers, hours, states from public.public_stats`))[0];
-  const perState = rowsOf<{ state: string; hours: string }>(await db.execute(sql`select state, hours from public.public_state_hours`));
   const roll = rowsOf<{ display_name: string }>(await db.execute(sql`select display_name from public.public_roll limit 60`));
-  return {
-    volunteers: Number(stats?.volunteers ?? 0), hours: Math.round(Number(stats?.hours ?? 0)), states: Number(stats?.states ?? 0),
-    stateHours: Object.fromEntries(perState.filter((r) => Number(r.hours) > 0).map((r) => [toId(r.state), Math.round(Number(r.hours))])),
-    roll: roll.map((r) => r.display_name),
-  };
+  return { volunteers: Number(stats?.volunteers ?? 0), hours: Math.round(Number(stats?.hours ?? 0)), states: Number(stats?.states ?? 0), roll: roll.map((r) => r.display_name) };
+}
+
+/**
+ * Approved hours per state, as map ids ("lagos", "federalcapitalterritory"), for the home page map.
+ * Totals only: no names, no individual records. It is read on the trusted server connection, so it needs no extra database view.
+ */
+export async function stateHoursForMap(owner: Db): Promise<Record<string, number>> {
+  const rows = rowsOf<{ state: string; hours: string }>(await owner.execute(sql`
+    select vp.state, coalesce(sum(h.hours), 0) as hours
+    from hour_logs h join volunteer_profiles vp on vp.user_id = h.user_id
+    where h.status = 'approved' and vp.state is not null group by vp.state`));
+  return Object.fromEntries(rows.filter((r) => Number(r.hours) > 0).map((r) => [toId(r.state), Math.round(Number(r.hours))]));
 }

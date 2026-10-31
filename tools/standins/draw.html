@@ -96,21 +96,32 @@ function quote(g, W, H, bg, fg, density) {
 
 // ---- looping clips: a pure function of time t in [0,1), so the loop is seamless ----
 const LOOPS = {
-  "loop-tally"(g, W, H, t) { // orange field, tally marks drawn one by one
+  "loop-tally"(g, W, H, t) { // orange field: three words in turn while tally marks are counted underneath. No people, no claims, no numbers.
     rect(g, ORANGE, 0, 0, W, H);
-    const total = 60, rows = 3, per = total / rows, lw = H * 0.017, gap = lw * 2.4;
-    const shown = (t < 0.8 ? t / 0.8 : 1) * total, fade = t > 0.9 ? 1 - (t - 0.9) / 0.1 : 1;
-    g.globalAlpha = fade;
+    const ease = (x) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+    // small italic line, always there
+    g.fillStyle = INK; g.font = `italic 600 ${H * 0.075}px "Fraunces"`; g.textBaseline = "alphabetic"; g.fillText("Volunteers are known by", W * 0.06, H * 0.2);
+    // the words: each slides up out of a mask, holds, then slides away; the last one hands over to the first so the loop is seamless
+    const WORDS = ["SHOW UP.", "SPEAK UP.", "STEP UP."], seg = 1 / WORDS.length, px = H * 0.5, base = H * 0.68;
+    g.font = `900 ${px}px "Big Shoulders"`;
+    WORDS.forEach((w, i) => {
+      const lt = (((t - i * seg) % 1) + 1) % 1 / seg; // 0..1 inside this word's turn (>1 = not its turn)
+      if (lt >= 1.0) return;
+      const inn = ease(lt / 0.16), out = ease((lt - 0.86) / 0.14);
+      const y = base + (1 - inn) * px * 0.9 + out * px * 0.9;
+      g.save(); g.beginPath(); g.rect(0, H * 0.24, W, H * 0.5); g.clip(); g.fillStyle = INK; g.fillText(w, W * 0.06, y); g.restore();
+    });
+    // the count: marks drawn one after another along the bottom, in groups of five, wiped clean at the end of the loop
+    const total = 85, lw = H * 0.016, gap = lw * 2.5, h = H * 0.15, y0 = H * 0.8;
+    const shown = (t < 0.94 ? t / 0.94 : 1) * total, clear = t > 0.95 ? 1 - (t - 0.95) / 0.05 : 1;
+    g.globalAlpha = clear; g.strokeStyle = INK; g.lineWidth = lw; g.lineCap = "butt";
     for (let i = 0; i < Math.floor(shown); i++) {
-      const row = Math.floor(i / per), k = i % per, grp = Math.floor(k / 5), j = k % 5;
-      const gx = W * 0.07 + grp * (gap * 5.6) , y = H * (0.14 + row * 0.27), h = H * 0.2;
-      g.strokeStyle = INK; g.lineWidth = lw;
+      const grp = Math.floor(i / 5), j = i % 5, gx = W * 0.06 + grp * (gap * 5.7);
       g.beginPath();
-      if (j < 4) { g.moveTo(gx + j * gap, y); g.lineTo(gx + j * gap, y + h); } else { g.moveTo(gx - gap * 0.4, y + h * 0.82); g.lineTo(gx + gap * 3.4, y + h * 0.18); }
+      if (j < 4) { g.moveTo(gx + j * gap, y0); g.lineTo(gx + j * gap, y0 + h); } else { g.moveTo(gx - gap * 0.4, y0 + h * 0.82); g.lineTo(gx + gap * 3.4, y0 + h * 0.18); }
       g.stroke();
     }
     g.globalAlpha = 1;
-    bigText(g, "SHOW UP.", W * 0.5, H * 0.96, H * 0.2, INK);
   },
   "loop-ticker"(g, W, H, t) { // ink band, scrolling words
     rect(g, INK, 0, 0, W, H);

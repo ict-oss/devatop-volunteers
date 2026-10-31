@@ -1,5 +1,5 @@
 // Dev-only: regenerates the stand-in artwork (public/photos/*.webp) and the looping clips (public/video/*).
-// Needs Playwright with Chromium and ffmpeg. Run: node tools/standins/make.mjs
+// Needs Playwright with Chromium and ffmpeg. Run: node tools/standins/make.mjs   (or: node tools/standins/make.mjs loops, for the two clips only)
 // The art is abstract on purpose: no people, so no consent is needed. Real photos replace it from Admin > Site images.
 import { createRequire } from "node:module";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_PATH || "playwright");
@@ -18,17 +18,18 @@ fs.mkdirSync("public/photos", { recursive: true }); fs.mkdirSync("public/video",
 
 const shot = async () => page.locator("#c").screenshot({ type: "png" });
 const done = [];
-for (const name of await page.evaluate(() => window.names())) {
+const onlyLoops = process.argv[2] === "loops"; // node tools/standins/make.mjs loops : only the two clips, leave the pictures alone
+for (const name of onlyLoops ? [] : await page.evaluate(() => window.names())) {
   const [rw, rh] = slots[name] ?? [1, 1], W = 1400, H = Math.round((W * rh) / rw);
   await page.setViewportSize({ width: W, height: H });
   await page.evaluate(([n, w, h]) => window.render(n, w, h, 0), [name, W, H]);
   await sharp(await shot()).webp({ quality: 74 }).toFile(`public/photos/${name}.webp`);
   done.push(name);
 }
-fs.writeFileSync("public/photos/manifest.json", JSON.stringify(done));
+if (!onlyLoops) fs.writeFileSync("public/photos/manifest.json", JSON.stringify(done));
 
-for (const [name, W, H] of [["loop-tally", 1120, 480], ["loop-ticker", 1200, 400]]) {
-  const FPS = 24, N = 6 * FPS, dir = `${process.env.TMPDIR || "/tmp"}/dv-${name}`;
+for (const [name, W, H, secs] of [["loop-tally", 1120, 480, 9], ["loop-ticker", 1200, 400, 6]]) {
+  const FPS = 24, N = secs * FPS, dir = `${process.env.TMPDIR || "/tmp"}/dv-${name}`;
   fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
   await page.setViewportSize({ width: W, height: H });
   for (let i = 0; i < N; i++) {
@@ -38,7 +39,7 @@ for (const [name, W, H] of [["loop-tally", 1120, 480], ["loop-ticker", 1200, 400
   const base = ["-y", "-loglevel", "error", "-framerate", String(FPS), "-i", `${dir}/f%04d.png`, "-an"];
   execFileSync("ffmpeg", [...base, "-c:v", "libx264", "-preset", "slow", "-crf", "30", "-pix_fmt", "yuv420p", "-movflags", "+faststart", `public/video/${name}.mp4`]);
   execFileSync("ffmpeg", [...base, "-c:v", "libvpx-vp9", "-crf", "38", "-b:v", "0", `public/video/${name}.webm`]);
-  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", `${dir}/f0060.png`, "-q:v", "6", `public/video/${name}.jpg`]);
+  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", `${dir}/f${String(Math.round(N * 0.18)).padStart(4, "0")}.png`, "-q:v", "6", `public/video/${name}.jpg`]);
 }
 await browser.close();
 console.log("done");

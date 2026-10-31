@@ -15,7 +15,14 @@ export async function GET() {
   const tables = database === "ok" ? await check(sql`select 1 from public.departments limit 1`) : "skipped";
   const seeded = database === "ok" && tables === "ok" ? Number(rowsOf<{ n: number }>(await trusted().execute(sql`select count(*)::int as n from public.departments`))[0]?.n ?? 0) : 0;
   const siteImages = database === "ok" ? await check(sql`select 1 from public.site_images limit 1`) : "skipped";
-  const mapView = database === "ok" ? await check(sql`select 1 from public.public_state_hours limit 1`) : "skipped";
+  // what the home page numbers will show (counts only), so an empty home page can be explained
+  const count = async (q: ReturnType<typeof sql>) => { try { return Number(rowsOf<{ n: number }>(await trusted().execute(q))[0]?.n ?? 0); } catch { return -1; } };
+  const homePage = database === "ok" ? {
+    activeVolunteers: await count(sql`select count(*)::int as n from volunteer_profiles where status = 'active'`),
+    approvedHourEntries: await count(sql`select count(*)::int as n from hour_logs where status = 'approved'`),
+    pendingHourEntries: await count(sql`select count(*)::int as n from hour_logs where status = 'pending'`),
+    publicStatsView: await check(sql`select volunteers, hours, states from public.public_stats`),
+  } : "skipped";
   const ready = Object.values(env).every(Boolean) && database === "ok" && tables === "ok" && siteImages === "ok" && seeded > 0;
-  return Response.json({ ready, env, database, tables, siteImages, mapView, departments: seeded, hint: ready ? "All good." : seeded === 0 && database === "ok" ? "The database has no departments: run npm run db:seed once (or add them in Admin > Departments)." : siteImages !== "ok" && database === "ok" ? "The database is missing newer tables or views: run npm run db:migrate on your computer, then open this page again." : "Fix the items that say false or failed, redeploy, and open this page again." }, { status: ready ? 200 : 503 });
+  return Response.json({ ready, env, database, tables, siteImages, departments: seeded, homePage, hint: ready ? "All good." : seeded === 0 && database === "ok" ? "The database has no departments: run npm run db:seed once (or add them in Admin > Departments)." : siteImages !== "ok" && database === "ok" ? "The database is missing newer tables or views: run npm run db:migrate on your computer, then open this page again." : "Fix the items that say false or failed, redeploy, and open this page again." }, { status: ready ? 200 : 503 });
 }

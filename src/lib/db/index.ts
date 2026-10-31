@@ -13,7 +13,9 @@ import * as schema from "./schema";
 // so the app never opens more connections than DB_POOL_MAX.
 const g = globalThis as unknown as { __devatopSql?: ReturnType<typeof postgres> };
 // prepare:false for Supabase's pooler. DB_POOL_MAX=1 is only for the local test database (one connection that cannot take queries sent at the same time), so there nothing is pipelined.
-const client = () => (g.__devatopSql ??= postgres(serverEnv().DATABASE_URL, { max: Number(process.env.DB_POOL_MAX) || 5, prepare: false, ...(process.env.DB_POOL_MAX === "1" ? { max_pipeline: 1 } : {}) }));
+// On Vercel every running copy of the site keeps its own pool, and Supabase only allows so many connections at once. So each copy keeps few connections
+// (default 3) and lets idle ones go after 15 seconds, instead of holding five each for minutes. That keeps the total well under the limit.
+const client = () => (g.__devatopSql ??= postgres(serverEnv().DATABASE_URL, { max: Number(process.env.DB_POOL_MAX) || 3, idle_timeout: 15, connect_timeout: 15, prepare: false, ...(process.env.DB_POOL_MAX === "1" ? { max_pipeline: 1 } : {}) }));
 export const db = () => drizzle(client(), { schema });
 /** The same connection as plain SQL text with $1 placeholders (for the demo-data tool). Owner connection: trusted server work only. */
 export const rawSql = client;

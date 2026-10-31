@@ -68,7 +68,7 @@ export const photoSrc = (id: string) => photoOverride(id) ?? `/photos/${id}.webp
  */
 export type VideoSlot = { id: string; ratio: string; where: string; brief: string };
 export const VIDEOS: Record<string, VideoSlot> = {
-  "loop-tally": { id: "loop-tally", ratio: "7/3", where: "Home page: the tally band under the hero", brief: "Silent loop, 6 seconds or less, under 300 KB. Tally marks being counted." },
+  "loop-tally": { id: "loop-tally", ratio: "7/3", where: "Home page: the tally band under the hero", brief: "Silent loop, 15 seconds or less, under 1 MB. The default is an animation of the words SHOW UP, SPEAK UP, STEP UP with tally marks being counted." },
   "loop-ticker": { id: "loop-ticker", ratio: "3/1", where: "About page: the moving words under the title", brief: "Silent loop, 6 seconds or less, under 300 KB. Scrolling words." },
 };
 export const videoSrc = (id: string): { mp4: string | null; webm: string | null; poster: string } => {

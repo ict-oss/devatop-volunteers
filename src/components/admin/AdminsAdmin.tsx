@@ -64,7 +64,7 @@ export function AdminsAdmin({ admins, meId, programmes, departments }: { admins:
                     <select className="input" aria-label="Role" value={eRole} onChange={(e) => { setERole(e.target.value as Role); setEScope(NONE); }}>{ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</select>
                     {picker(eRole, eScope, setEScope)}
                   </div></td>
-                ) : (<><td>{a.roleLabel}</td><td className="text-sm">{a.scope || <span className="opacity-50">&mdash;</span>}</td></>)}
+                ) : (<><td>{a.roleLabel}</td><td className="text-sm">{a.scope || <span className="opacity-50">None</span>}</td></>)}
                 <td className="text-sm">{new Date(a.since).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</td>
                 <td className="text-right whitespace-nowrap">
                   {a.userId === meId ? <span className="text-sm opacity-60">Ask another Super Admin to change your role</span> : editing === a.userId ? (

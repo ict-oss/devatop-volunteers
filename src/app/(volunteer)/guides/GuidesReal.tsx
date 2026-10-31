@@ -23,7 +23,7 @@ export function GuidesReal() {
           <section key={g.id} className="border-t border-ink">
             <button className="w-full text-left py-4 flex justify-between gap-4 items-center min-h-14" aria-expanded={open === g.id} onClick={() => setOpen(open === g.id ? null : g.id)}>
               <span className="display text-3xl md:text-4xl">{g.title}</span>
-              <span className="flex items-center gap-2">{g.mustRead && <span className={`stamp ${g.read ? "stamp-ok" : "stamp-info"}`}>{g.read ? "Read" : "Must read"}</span>}<span className="display text-3xl text-orange">{open === g.id ? "–" : "+"}</span></span>
+              <span className="flex items-center gap-2">{g.mustRead && <span className={`stamp ${g.read ? "stamp-ok" : "stamp-info"}`}>{g.read ? "Read" : "Must read"}</span>}<span className="display text-3xl text-orange">{open === g.id ? "×" : "+"}</span></span>
             </button>
             {open === g.id && (
               <div className="pb-6 max-w-2xl grid gap-3 text-[length:var(--text-lead)]">

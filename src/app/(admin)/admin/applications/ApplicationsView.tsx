@@ -99,7 +99,7 @@ export function ApplicationsView({ initial, departments }: ApplicationsProps) {
                           <br /><b className="block mt-2">Applied</b>{fmtDate(a.submittedAt.slice(0, 10))}</div>
                         {a.reply && <div className="md:col-span-3 border-l-4 border-orange pl-3"><b>Applicant's reply to your question</b><p className="mt-1 whitespace-pre-line">{a.reply}</p></div>}
                         <div><b>Consents on record</b>{a.consents.length ? <ul className="list-disc pl-4">{a.consents.map((c) => <li key={c.key}>{c.key} · {c.version}</li>)}</ul> : <p className="opacity-60">None recorded (seed data)</p>}
-                          {age !== null && age < 18 && <p className={`mt-2 font-bold ${a.guardian?.verified ? "text-stamp" : "text-alert"}`}>Guardian: {a.guardian ? `${a.guardian.name} — ${a.guardian.verified ? "verified" : "not verified"}` : "none"}</p>}
+                          {age !== null && age < 18 && <p className={`mt-2 font-bold ${a.guardian?.verified ? "text-stamp" : "text-alert"}`}>Guardian: {a.guardian ? `${a.guardian.name}, ${a.guardian.verified ? "verified" : "not verified"}` : "none"}</p>}
                           {block && <p className="text-alert font-bold mt-1">{block} The database refuses this approval.</p>}</div>
                       </div>
                     </td></tr>

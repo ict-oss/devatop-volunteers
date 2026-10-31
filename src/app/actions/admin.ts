@@ -18,6 +18,9 @@ import { fileSize, removeFiles, uploadTokens } from "@/lib/server/storage";
 import { slotKind } from "@/lib/siteImages";
 import { addAdmin, adminInput, changeAdmin, removeAdmin, setVolunteerStatus, userIdByEmail } from "@/lib/services/users";
 import { friendly } from "@/lib/services/db";
+import { removeDemo, seedDemo } from "@/lib/db/demo";
+import { rawSql } from "@/lib/db";
+import { sql } from "drizzle-orm";
 
 /** Every admin action: checked on the server for its exact permission (rule 1), then run AS the admin so scope and the database rules apply. */
 async function asAdmin<T>(action: Action, fn: (c: NonNullable<Awaited<ReturnType<typeof adminCaller>>>) => Promise<Result<T>>): Promise<Result<T>> {
@@ -198,4 +201,19 @@ export const changeAdminAction = async (userId: string, raw: unknown) => asAdmin
 export const removeAdminAction = async (userId: string) => asAdmin("admins.manage", async (me) => {
   await asCaller(me.caller, (tx) => removeAdmin(tx, me.caller.sub, uuid.parse(userId)));
   return ok();
+});
+
+/* ---------------------------------------------------------------- temporary demo data (Super Admin only; every item is marked "(Temp)") */
+async function withDemo<T>(fn: (run: Parameters<typeof seedDemo>[0]) => Promise<T>): Promise<T> {
+  return (await rawSql().begin(async (tx) => fn(async (text, params) => [...(await tx.unsafe(text, (params ?? []) as never[]))] as Record<string, unknown>[]))) as T;
+}
+export const addDemoAction = async () => asAdmin("settings.edit", async (me) => {
+  const r = await withDemo((run) => seedDemo(run));
+  await trusted().execute(sql`insert into audit_logs (actor_id, action, table_name, detail) values (${me.caller.sub}::uuid, 'demo.add', 'demo', ${JSON.stringify({ volunteers: r.added, calls: r.calls })}::jsonb)`);
+  return ok(r);
+});
+export const removeDemoAction = async () => asAdmin("settings.edit", async (me) => {
+  const removed = await withDemo((run) => removeDemo(run));
+  await trusted().execute(sql`insert into audit_logs (actor_id, action, table_name, detail) values (${me.caller.sub}::uuid, 'demo.remove', 'demo', ${JSON.stringify({ volunteers: removed })}::jsonb)`);
+  return ok({ removed });
 });

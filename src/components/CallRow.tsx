@@ -24,14 +24,14 @@ export function CallRow({ o, dark = false, onSignup, signedUp }: { o: Opportunit
         <span className="text-sm font-bold uppercase tracking-wider opacity-80">{o.programme}</span>
         <h3 className="display text-3xl md:text-4xl leading-[0.95] mt-1" style={{ fontFamily: "var(--font-display)", fontWeight: 900 }}>{o.title}</h3>
         <p className="mt-2 max-w-xl opacity-90">{o.blurb}</p>
-        <p className="mt-2 text-sm"><b>{o.state}</b> — {o.place} · Skills: {o.skills.join(", ")} · Apply by {fmtDate(o.deadline)}</p>
+        <p className="mt-2 text-sm"><b>{o.state}</b>, {o.place} · Skills: {o.skills.join(", ")} · Apply by {fmtDate(o.deadline)}</p>
       </div>
       <div className="md:col-span-2 relative">
         <div className="relative inline-block px-4 py-1">
           <span className="display text-6xl leading-none">{full ? 0 : left}</span>
           {!full && left <= 6 && <InkCircle className="absolute -inset-2 w-[calc(100%+1rem)] h-[calc(100%+1rem)] text-orange" />}
         </div>
-        <div className="text-sm">{full ? "slots left — full" : `slot${left === 1 ? "" : "s"} left`}</div>
+        <div className="text-sm">{full ? "full, no places left" : `slot${left === 1 ? "" : "s"} left`}</div>
       </div>
       <div className="md:col-span-2 md:text-right">
         {onSignup ? (

@@ -24,6 +24,7 @@ const NAV: { label: string; href: string; need: Action }[] = [
   { label: "Admins", href: "/admin/admins", need: "admins.manage" },
   { label: "Site images", href: "/admin/images", need: "settings.edit" },
   { label: "Audit log", href: "/admin/audit", need: "audit.see" },
+  { label: "Demo data", href: "/admin/demo", need: "settings.edit" },
 ];
 
 /** Idle and sign-out end the real session. */
